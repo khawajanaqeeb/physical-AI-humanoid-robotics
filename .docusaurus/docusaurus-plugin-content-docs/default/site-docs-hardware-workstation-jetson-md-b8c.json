@@ -1,0 +1,28 @@
+{
+  "id": "hardware/workstation-jetson",
+  "title": "Workstation & Jetson Setup",
+  "description": "Learning Objectives",
+  "source": "@site/docs/hardware/workstation-jetson.md",
+  "sourceDirName": "hardware",
+  "slug": "/hardware/workstation-jetson",
+  "permalink": "/docs/hardware/workstation-jetson",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/hardware/workstation-jetson.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "Workstation & Jetson Setup"
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "ROS 2 Project Assessment",
+    "permalink": "/docs/assessments/ros2-project"
+  },
+  "next": {
+    "title": "On-Premise vs Cloud Lab Setup",
+    "permalink": "/docs/lab-setup/on-prem-cloud"
+  }
+}

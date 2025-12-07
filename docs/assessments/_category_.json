@@ -1,0 +1,8 @@
+{
+  "label": "Assessment Chapters",
+  "position": 7,
+  "link": {
+    "type": "generated-index",
+    "description": "ROS 2 projects, Gazebo simulations, Isaac perception pipelines, and final humanoid capstone."
+  }
+}

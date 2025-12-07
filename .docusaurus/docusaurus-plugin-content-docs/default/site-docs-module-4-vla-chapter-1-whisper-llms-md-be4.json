@@ -1,0 +1,28 @@
+{
+  "id": "module-4-vla/chapter-1-whisper-llms",
+  "title": "Whisper & LLMs",
+  "description": "Learning Objectives",
+  "source": "@site/docs/module-4-vla/chapter-1-whisper-llms.md",
+  "sourceDirName": "module-4-vla",
+  "slug": "/module-4-vla/chapter-1-whisper-llms",
+  "permalink": "/docs/module-4-vla/chapter-1-whisper-llms",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/module-4-vla/chapter-1-whisper-llms.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "Whisper & LLMs"
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Isaac ROS Navigation",
+    "permalink": "/docs/module-3-isaac/chapter-2-isaac-ros-navigation"
+  },
+  "next": {
+    "title": "Full Capstone Pipeline",
+    "permalink": "/docs/module-4-vla/chapter-2-capstone-pipeline"
+  }
+}

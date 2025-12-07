@@ -1,0 +1,8 @@
+{
+  "label": "Hardware Chapters",
+  "position": 8,
+  "link": {
+    "type": "generated-index",
+    "description": "Required workstation, Jetson edge kits, robots (Unitree Go2, G1, OP3), and Digital Twin architecture."
+  }
+}

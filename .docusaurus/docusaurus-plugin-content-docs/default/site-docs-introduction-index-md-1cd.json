@@ -1,0 +1,28 @@
+{
+  "id": "introduction/index",
+  "title": "Introduction to Physical AI",
+  "description": "Learning Objectives",
+  "source": "@site/docs/introduction/index.md",
+  "sourceDirName": "introduction",
+  "slug": "/introduction/",
+  "permalink": "/docs/introduction/",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/introduction/index.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "Introduction to Physical AI"
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Tutorial Intro",
+    "permalink": "/docs/intro"
+  },
+  "next": {
+    "title": "ROS 2 Basics",
+    "permalink": "/docs/module-1-ros2/chapter-1-ros2-basics"
+  }
+}

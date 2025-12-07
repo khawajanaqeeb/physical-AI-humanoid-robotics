@@ -1,0 +1,8 @@
+{
+  "label": "Cloud vs On-Premise Lab Setup",
+  "position": 9,
+  "link": {
+    "type": "generated-index",
+    "description": "On-prem lab setup, cloud-native lab setup, cost models, and latency traps and solutions."
+  }
+}

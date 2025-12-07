@@ -1,55 +1,47 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- Sync Impact Report -->
+<!--
+Version change: 0.0.0 (initial) -> 1.0.0
+Modified principles: None
+Added sections: Project Standards & Constraints
+Removed sections: None
+Templates requiring updates:
+- .specify/templates/plan-template.md: ✅ updated
+- .specify/templates/spec-template.md: ✅ updated
+- .specify/templates/tasks-template.md: ✅ updated
+- .specify/templates/commands/*.md: ✅ updated
+Follow-up TODOs: None
+-->
+# Physical AI Humanoid Robotics Textbook Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Fully Spec-Driven Workflow
+Every chapter and significant component of the textbook will begin with a clear, explicit specification document (`*.spec.md`). This ensures clarity, consistency, and a shared understanding of requirements before implementation begins.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Technical Accuracy, Clarity, and Educational Focus
+All content, code, diagrams, and explanations within the textbook must be technically accurate, clear, and highly focused on pedagogical effectiveness. The primary goal is to educate the target audience (grade level 8–12 clarity) effectively.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Modular Documentation
+The textbook's structure will strictly adhere to modular documentation principles, aligning with Docusaurus best practices. This includes well-organized directories, reusable components, and clear content separation for maintainability and scalability.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Toolchain Fidelity
+Development and deployment of the textbook will strictly follow the prescribed toolchain: Spec-Kit Plus for specifications, Claude Code for content generation and assistance, Docusaurus for site generation, and GitHub Pages for deployment. Adherence to this toolchain is non-negotiable to ensure consistency and efficiency.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## Project Standards & Constraints
 
-### [PRINCIPLE_6_NAME]
+### Chapter Structure & Count
+Each chapter will follow a clear progression: Specification (`.spec.md`) → Implementation/Content Creation → Final Docusaurus Page. The textbook will consist of 12–18 chapters, covering an introduction, setup, robotics fundamentals, AI modules, advanced topics, and deployment.
 
+### Content Formatting & Code Integrity
+All content will be written in Markdown/MDX, adhering to Docusaurus best practices for structure and rendering. All embedded code, diagrams, and examples must be correct, runnable, and verifiable.
 
-[PRINCIPLE__DESCRIPTION]
+### Specification & Generation
+Specifications will be authored using Spec-Kit Plus, and all associated files and content generation tasks will leverage Claude Code to maintain a spec-driven workflow.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### Accessibility & Deployment
+The writing style will target a grade level 8–12 clarity to ensure accessibility for the intended audience. The final Docusaurus site will be deployed to GitHub Pages using recommended configurations to ensure full functionality and maintainability.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+This constitution supersedes all other project practices. Amendments require a documented proposal, team consensus, and a plan for migration or adaptation. All pull requests and code reviews must verify compliance with these principles. Complexity must always be justified.
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
-
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-12-06 | **Last Amended**: 2025-12-06

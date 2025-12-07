@@ -1,0 +1,28 @@
+{
+  "id": "assessments/ros2-project",
+  "title": "ROS 2 Project Assessment",
+  "description": "Learning Objectives",
+  "source": "@site/docs/assessments/ros2-project.md",
+  "sourceDirName": "assessments",
+  "slug": "/assessments/ros2-project",
+  "permalink": "/docs/assessments/ros2-project",
+  "draft": false,
+  "unlisted": false,
+  "editUrl": "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/docs/assessments/ros2-project.md",
+  "tags": [],
+  "version": "current",
+  "sidebarPosition": 1,
+  "frontMatter": {
+    "sidebar_position": 1,
+    "title": "ROS 2 Project Assessment"
+  },
+  "sidebar": "tutorialSidebar",
+  "previous": {
+    "title": "Week 1 Overview",
+    "permalink": "/docs/weekly-breakdowns/week-1-overview"
+  },
+  "next": {
+    "title": "Workstation & Jetson Setup",
+    "permalink": "/docs/hardware/workstation-jetson"
+  }
+}

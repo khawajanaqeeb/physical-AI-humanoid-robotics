@@ -1,0 +1,8 @@
+{
+  "label": "Module 3 - The AI-Robot Brain (NVIDIA Isaac)",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Isaac Sim, synthetic data generation, Isaac ROS, and Nav2 path planning for humanoids."
+  }
+}
