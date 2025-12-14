@@ -1,0 +1,335 @@
+openapi: 3.0.3
+info:
+  title: Gemini RAG Chatbot API
+  description: |
+    Backend API for Retrieval-Augmented Generation (RAG) chatbot integrated with Docusaurus book.
+    Provides endpoints for querying book content using semantic search and AI-generated responses.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server
+  - url: http://localhost:8000/v1
+    description: Local development server
+
+tags:
+  - name: Query
+    description: Query processing and response generation
+  - name: Health
+    description: System health and monitoring
+
+paths:
+  /query:
+    post:
+      summary: Submit a question to the chatbot
+      description: |
+        Processes a natural language question by:
+        1. Embedding the query using Gemini
+        2. Retrieving relevant chunks from Qdrant
+        3. Generating a response using retrieved context
+        4. Returning answer with source citations
+      operationId: submitQuery
+      tags:
+        - Query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              simpleQuery:
+                summary: Simple question
+                value:
+                  question: "What is forward kinematics?"
+                  max_results: 3
+              sessionQuery:
+                summary: Query with session context
+                value:
+                  question: "Can you explain that in simpler terms?"
+                  session_id: "b4c3d2e1-6789-1234-cdef-567890abcdef"
+                  max_results: 5
+      responses:
+        '200':
+          description: Successful response with answer and sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                successfulAnswer:
+                  summary: Answer with sources
+                  value:
+                    answer: "Forward kinematics is the process of calculating the position and orientation of a robot's end-effector based on given joint angles. It uses transformation matrices to compute the final pose."
+                    sources:
+                      - chapter: "Chapter 3: Robotic Kinematics"
+                        section: "3.2 Forward Kinematics"
+                        source_url: "https://book.example.com/chapter-03/forward-kinematics"
+                        relevance_score: 0.89
+                    confidence: 0.87
+                    response_time_ms: 1850
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emptyQuestion:
+                  summary: Empty question
+                  value:
+                    error: "Validation error"
+                    message: "Question must be between 3 and 1000 characters"
+                    code: "INVALID_INPUT"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimitExceeded:
+                  summary: Too many requests
+                  value:
+                    error: "Rate limit exceeded"
+                    message: "Maximum 100 requests per minute allowed"
+                    code: "RATE_LIMIT_EXCEEDED"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                geminiDown:
+                  summary: External service unavailable
+                  value:
+                    error: "Internal server error"
+                    message: "Gemini API is currently unavailable"
+                    code: "EXTERNAL_SERVICE_ERROR"
+        '503':
+          description: Service temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                degradedService:
+                  summary: Partial outage
+                  value:
+                    error: "Service degraded"
+                    message: "Vector database is temporarily unavailable"
+                    code: "SERVICE_DEGRADED"
+
+  /health:
+    get:
+      summary: Check system health status
+      description: |
+        Returns health status of the API and its dependencies:
+        - Qdrant vector database connection
+        - Neon Postgres database connection
+        - Gemini API availability
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Health check successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All systems operational
+                  value:
+                    status: "healthy"
+                    qdrant_connected: true
+                    postgres_connected: true
+                    gemini_api_available: true
+                    timestamp: "2025-12-14T14:22:15Z"
+                degraded:
+                  summary: Partial outage
+                  value:
+                    status: "degraded"
+                    qdrant_connected: false
+                    postgres_connected: true
+                    gemini_api_available: true
+                    timestamp: "2025-12-14T14:22:15Z"
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                unhealthy:
+                  summary: Critical dependencies down
+                  value:
+                    status: "unhealthy"
+                    qdrant_connected: false
+                    postgres_connected: false
+                    gemini_api_available: true
+                    timestamp: "2025-12-14T14:22:15Z"
+
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          minLength: 3
+          maxLength: 1000
+          description: User's natural language question about the book content
+          example: "What is the difference between forward and inverse kinematics?"
+        session_id:
+          type: string
+          format: uuid
+          description: Optional session ID for multi-turn conversations
+          example: "b4c3d2e1-6789-1234-cdef-567890abcdef"
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+          description: Number of relevant chunks to retrieve from vector database
+          example: 5
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - response_time_ms
+      properties:
+        answer:
+          type: string
+          minLength: 10
+          description: AI-generated answer based on retrieved book content
+          example: "Forward kinematics calculates end-effector position from joint angles, while inverse kinematics solves for joint angles given a desired position."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceCitation'
+          minItems: 0
+          maxItems: 10
+          description: List of book sections used to generate the answer
+        confidence:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence score for the generated answer (0.0 = low, 1.0 = high)
+          example: 0.87
+        response_time_ms:
+          type: integer
+          minimum: 0
+          description: Time taken to process the query in milliseconds
+          example: 1850
+
+    SourceCitation:
+      type: object
+      required:
+        - chapter
+        - source_url
+        - relevance_score
+      properties:
+        chapter:
+          type: string
+          maxLength: 256
+          description: Chapter title from the book
+          example: "Chapter 3: Robotic Kinematics"
+        section:
+          type: string
+          maxLength: 256
+          description: Section heading within the chapter
+          example: "3.2 Forward Kinematics"
+        source_url:
+          type: string
+          format: uri
+          description: Public URL to the book page containing this information
+          example: "https://book.example.com/chapter-03/forward-kinematics"
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Similarity score from vector search (cosine similarity)
+          example: 0.89
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - qdrant_connected
+        - postgres_connected
+        - gemini_api_available
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+          description: Overall system health status
+          example: "healthy"
+        qdrant_connected:
+          type: boolean
+          description: Qdrant vector database connection status
+          example: true
+        postgres_connected:
+          type: boolean
+          description: Neon Postgres database connection status
+          example: true
+        gemini_api_available:
+          type: boolean
+          description: Google Gemini API availability
+          example: true
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of health check
+          example: "2025-12-14T14:22:15Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - code
+      properties:
+        error:
+          type: string
+          description: High-level error category
+          example: "Validation error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Question must be between 3 and 1000 characters"
+        code:
+          type: string
+          description: Machine-readable error code
+          enum:
+            - INVALID_INPUT
+            - RATE_LIMIT_EXCEEDED
+            - EXTERNAL_SERVICE_ERROR
+            - SERVICE_DEGRADED
+            - INTERNAL_ERROR
+          example: "INVALID_INPUT"
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for rate limiting and access control (future enhancement)
+
+security: []  # No authentication required in initial version
+

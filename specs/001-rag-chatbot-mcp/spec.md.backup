@@ -1,0 +1,236 @@
+# Feature Specification: Phase 2 — Integrated RAG Chatbot System
+
+**Feature Branch**: `001-rag-chatbot-mcp`
+**Created**: 2025-12-09
+**Status**: Draft
+**Input**: User description: "Phase 2 — Integrated RAG Chatbot System with Context7 MCP Server, Qdrant, Neon, and Docusaurus"
+
+## Clarifications
+
+### Session 2025-12-09
+
+- Q: Language support scope for Phase 2? → A: English-only (all content and queries must be in English; reject non-English queries with clear message)
+
+## User Scenarios & Testing *(mandatory)*
+
+### User Story 1 - Interactive Textbook Query (Priority: P1)
+
+A student reading the textbook clicks the floating chat button, types a question, and receives an answer with citations linking to relevant sections.
+
+**Why this priority**: Core value - enables instant contextual help without leaving the reading experience.
+
+**Independent Test**: Deploy with chat widget, ask questions, verify accurate answers with working citations.
+
+**Acceptance Scenarios**:
+
+1. **Given** reader on textbook page, **When** clicking floating chat button, **Then** modal opens without page navigation
+2. **Given** chat modal open, **When** typing question and submitting, **Then** system returns answer with citations
+3. **Given** answer with citations, **When** clicking citation link, **Then** navigates to exact textbook section
+4. **Given** out-of-scope question, **When** processing, **Then** responds with scope boundary message
+
+---
+
+### User Story 2 - Text Selection Query (Priority: P2)
+
+Reader selects text, sees "Ask AI" button, clicks to open chat with context pre-populated.
+
+**Why this priority**: Enhances P1 by reducing friction and improving question quality.
+
+**Independent Test**: Select text, verify button appears, click, confirm chat opens with context.
+
+**Acceptance Scenarios**:
+
+1. **Given** text selected, **When** selection complete, **Then** "Ask AI" button appears
+2. **Given** button visible, **When** clicked, **Then** chat opens with selected text included
+3. **Given** chat with context, **When** asking question, **Then** answer prioritizes related information
+
+---
+
+### User Story 3 - Automatic Content Synchronization (Priority: P3)
+
+MCP server detects changes, extracts content, generates embeddings, updates vector database.
+
+**Why this priority**: Operational efficiency - ensures freshness without manual effort.
+
+**Acceptance Scenarios**:
+
+1. **Given** new markdown added, **When** sync runs, **Then** content extracted, chunked, embedded, stored
+2. **Given** page modified, **When** detected, **Then** outdated embeddings removed and replaced
+3. **Given** sync error, **When** processing fails, **Then** error logged and process continues
+
+---
+
+### User Story 4 - Multi-Agent RAG Pipeline (Priority: P1)
+
+System orchestrates Retrieval, Answer, and Citation agents to deliver accurate responses.
+
+**Why this priority**: Foundation of RAG - defines query processing and ensures quality.
+
+**Acceptance Scenarios**:
+
+1. **Given** user question, **When** Retrieval Agent processes, **Then** top-k chunks retrieved
+2. **Given** chunks retrieved, **When** Answer Agent processes, **Then** coherent response without hallucination
+3. **Given** answer generated, **When** Citation Agent processes, **Then** claims linked to source chunks
+
+---
+
+### User Story 5 - Query Analytics and Feedback (Priority: P3)
+
+System logs queries and feedback to database for monitoring and improvement.
+
+**Acceptance Scenarios**:
+
+1. **Given** query submitted, **When** complete, **Then** stored in database
+2. **Given** answer displayed, **When** feedback given, **Then** recorded with query
+3. **Given** multiple queries, **When** analytics requested, **Then** metrics available
+
+---
+
+### Edge Cases
+
+- Long question (>1000 words): Truncates to token limit, logs warning
+- Concurrent queries: FastAPI async, Qdrant/Neon support pooling
+- Service unavailable: Graceful error, logs failure, exponential backoff
+- Code blocks: MCP preprocessing excludes irrelevant blocks
+- Embedding fails: Logs with details, skips document, marks for review
+- Non-English queries: System detects and rejects with message "This chatbot supports English queries only. Please rephrase your question in English."
+
+
+## Requirements *(mandatory)*
+
+### Functional Requirements
+
+#### Chat Interface & Interaction
+- **FR-001**: Floating chat button visible on all pages
+- **FR-002**: Modal chat opens without page navigation
+- **FR-003**: Users type questions and receive responses
+- **FR-004**: "Ask AI" button on text selection
+- **FR-005**: Chat pre-populated with selected text
+- **FR-006**: Matches Docusaurus theme styling
+- **FR-007**: Responsive on desktop, tablet, mobile
+
+#### RAG Pipeline & Agent Orchestration
+- **FR-008**: Retrieval Agent queries Qdrant for similar chunks
+- **FR-009**: Returns top-k chunks above threshold (default: k=5, threshold=0.7)
+- **FR-010**: Answer Agent synthesizes response from context
+- **FR-011**: No information beyond retrieved context (no hallucination)
+- **FR-012**: Citation Agent identifies source chunks
+- **FR-013**: Citations formatted as clickable links
+- **FR-014**: Selection-based prioritization of context
+- **FR-015**: Guardrails for out-of-scope queries
+- **FR-016**: System MUST detect non-English queries and respond with English-only scope message
+
+#### Context7 MCP Server Integration
+- **FR-017**: Uses MCP fs tools to read markdown files
+- **FR-018**: Uses MCP text tools for preprocessing
+- **FR-019**: Chunks content with 500-800 token target
+- **FR-020**: Extracts metadata (file_path, title, hierarchy)
+- **FR-021**: MCP server accessible via async calls
+- **FR-022**: Uses MCP system tools for sync scheduling
+
+#### Embeddings & Vector Storage
+- **FR-023**: OpenAI Embeddings API (text-embedding-3-large)
+- **FR-024**: Stores in Qdrant Cloud with metadata
+- **FR-025**: Qdrant collection with matching dimensions
+- **FR-026**: Upsert logic to avoid duplicates
+- **FR-027**: Deletes embeddings for removed documents
+
+#### Backend API (FastAPI)
+- **FR-028**:  endpoint for questions
+- **FR-029**:  endpoint for contextual queries
+- **FR-030**:  endpoint for manual embedding
+- **FR-031**: JSON responses with answer, citations, sources
+- **FR-032**: Async request handling
+- **FR-033**: Input validation and error responses
+- **FR-034**: CORS for Docusaurus domain
+
+#### Database & Logging (Neon Postgres)
+- **FR-035**:  table for queries
+- **FR-036**:  table for results
+- **FR-037**:  table for ratings
+- **FR-038**: Structured logging of operations
+- **FR-039**: Analytics query interface
+
+#### Content Synchronization
+- **FR-040**: Detects markdown file changes
+- **FR-041**: Triggers re-embedding for modifications
+- **FR-042**: Configurable sync schedule (default: 6 hours)
+- **FR-043**: Graceful error handling and continuation
+- **FR-044**: Tracks sync state in database
+
+### Key Entities
+
+- **TextbookChunk**: chunk_id, content_text, file_path, document_title, heading_hierarchy, chunk_index, embedding_vector, created_at, updated_at
+- **Query**: query_id, query_text, user_session_id, retrieved_chunk_ids, answer_text, citations, similarity_scores, timestamp
+- **Feedback**: feedback_id, query_id, feedback_type (positive/negative), timestamp
+- **SyncJob**: sync_id, start_time, end_time, status (running/completed/failed), files_processed, files_failed, error_log
+
+
+## Success Criteria *(mandatory)*
+
+### Measurable Outcomes
+
+- **SC-001**: Answer with citations in under 3 seconds for 95% of queries
+- **SC-002**: Zero hallucinated information verified through 100 test questions
+- **SC-003**: 90% of citations link correctly to exact textbook sections
+- **SC-004**: Handles 100 concurrent users without degradation
+- **SC-005**: 50-page textbook sync completes in under 10 minutes
+- **SC-006**: 85% of queries rated helpful (thumbs up/down over 500 interactions)
+- **SC-007**: Chat loads and becomes interactive in under 2 seconds
+- **SC-008**: Correctly identifies and rejects out-of-scope queries with 95% accuracy
+- **SC-009**: Text selection "Ask AI" activates within 500ms
+- **SC-010**: Embedding generation cost under $0.50 per 100 pages
+
+## Assumptions
+
+1. Context7 MCP Server properly configured with required tools
+2. Qdrant Cloud account provisioned with sufficient quota
+3. Neon Postgres instance available with credentials
+4. Valid OpenAI API key for embeddings
+5. Docusaurus 2.x or 3.x supporting script injection
+6. Stable internet connectivity
+7. Standard markdown format with clear hierarchy
+8. All textbook content and user queries are in English only (Phase 2 scope)
+9. Browser-based session tracking
+10. Backend deployment platform supporting Python async
+
+## Out of Scope
+
+- User authentication and personalized accounts
+- Multi-textbook support
+- Real-time collaboration
+- Voice input/output
+- Analytics dashboard UI
+- Custom model fine-tuning
+- LMS integration
+- Offline functionality
+- Multi-modal content (images, videos)
+
+## Dependencies
+
+- Qdrant Cloud for vector storage
+- Neon Postgres for relational data
+- OpenAI API for embeddings
+- Context7 MCP Server (functional and accessible)
+- Docusaurus 2.x/3.x build pipeline
+- Python 3.9+ with async support
+- Modern browser with ES6+ JavaScript
+
+## Risks & Mitigations
+
+1. **OpenAI API Rate Limits**: Exponential backoff, batch requests, caching
+2. **Qdrant Cloud Availability**: Health checks, graceful degradation, uptime monitoring
+3. **MCP Server Performance**: Pagination, memory/CPU limits, monitoring
+4. **Context Window Limits**: Maximum chunk sizes, context pruning
+5. **Embedding Cost Overrun**: Change detection, selective re-embedding, alerts
+6. **Citation Accuracy**: Validation tests, chunk metadata verification
+
+## Next Steps
+
+After specification approval:
+
+1. Run `/sp.plan` for technical architecture and implementation plan
+2. Run `/sp.tasks` to generate actionable implementation tasks
+3. Set up development environment with FastAPI, Qdrant, Neon, MCP server
+4. Create initial Docusaurus plugin for chat widget
+

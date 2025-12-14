@@ -1,0 +1,61 @@
+/**
+ * Citation Styles
+ * Clickable citation links with icon
+ */
+
+.citation-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin: 4px 4px 4px 0;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 16px;
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.citation-link:hover {
+  background: rgba(102, 126, 234, 0.2);
+  border-color: #667eea;
+  transform: translateY(-1px);
+}
+
+.citation-link:active {
+  transform: translateY(0);
+}
+
+.citation-icon {
+  flex-shrink: 0;
+}
+
+.citation-anchor {
+  opacity: 0.7;
+  font-size: 11px;
+  margin-left: 2px;
+}
+
+/* Dark mode */
+[data-theme='dark'] .citation-link {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.4);
+  color: #a5b4fc;
+}
+
+[data-theme='dark'] .citation-link:hover {
+  background: rgba(102, 126, 234, 0.25);
+  border-color: #a5b4fc;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .citation-link {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+}

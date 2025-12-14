@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  title: RAG Chatbot API
+  description: |
+    Backend API for Phase 2 RAG Chatbot System with multi-agent orchestration,
+    vector search, and citation generation.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development
+  - url: https://api-production.example.com
+    description: Production
+
+tags:
+  - name: query
+    description: Query processing and retrieval
+  - name: feedback
+    description: User feedback collection
+  - name: sync
+    description: Content synchronization
+  - name: health
+    description: System health checks
+
+paths:
+  /api/query:
+    post:
+      tags:
+        - query
+      summary: Process user query
+      description: |
+        Orchestrates multi-agent RAG pipeline:
+        1. Retrieval Agent: Search Qdrant for relevant chunks
+        2. Answer Agent: Synthesize response from context
+        3. Citation Agent: Link answer to source chunks
+      operationId: processQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              simple_query:
+                summary: Simple question
+                value:
+                  query: "What is forward kinematics?"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+              context_query:
+                summary: Question with text selection
+                value:
+                  query: "Explain this in more detail"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+                  selected_text: "The robot arm consists of multiple joints..."
+      responses:
+        '200':
+          description: Successful query processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                success:
+                  summary: Successful response with citations
+                  value:
+                    answer: "Forward kinematics is the process of calculating the position and orientation of a robot's end effector based on its joint parameters..."
+                    citations:
+                      - title: "Robotics Fundamentals"
+                        anchor: "forward-kinematics"
+                        url: "/docs/chapter-01#forward-kinematics"
+                      - title: "Kinematic Chains"
+                        anchor: "denavit-hartenberg"
+                        url: "/docs/chapter-02#denavit-hartenberg"
+                    sources:
+                      - "Robotics Fundamentals"
+                      - "Kinematic Chains"
+                    retrieval_time_ms: 45
+                    answer_time_ms: 1200
+                    citation_time_ms: 30
+                    total_time_ms: 1275
+        '400':
+          description: Invalid request (non-English query or out of scope)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                non_english:
+                  summary: Non-English query rejected
+                  value:
+                    error: "This chatbot supports English queries only. Please rephrase your question in English."
+                    error_code: "LANGUAGE_NOT_SUPPORTED"
+                out_of_scope:
+                  summary: Out-of-scope query
+                  value:
+                    error: "This question is outside the scope of the textbook. Please ask about robotics, AI, or related topics."
+                    error_code: "OUT_OF_SCOPE"
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/feedback:
+    post:
+      tags:
+        - feedback
+      summary: Submit feedback
+      description: Record thumbs-up or thumbs-down feedback for a query result
+      operationId: submitFeedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '201':
+          description: Feedback recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '404':
+          description: Query not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/sync/trigger:
+    post:
+      tags:
+        - sync
+      summary: Trigger content synchronization
+      description: Manually start content sync job (admin/cron use)
+      operationId: triggerSync
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncTriggerRequest'
+      responses:
+        '202':
+          description: Sync job started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncTriggerResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/sync/status/{sync_id}:
+    get:
+      tags:
+        - sync
+      summary: Get sync job status
+      description: Retrieve status and details of a sync job
+      operationId: getSyncStatus
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: sync_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Sync job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncJobStatus'
+        '404':
+          description: Sync job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      tags:
+        - health
+      summary: Health check
+      description: Returns service health status and dependency checks
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+        - session_id
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: User question in English
+          example: "What is forward kinematics?"
+        session_id:
+          type: string
+          format: uuid
+          description: Browser session UUID from sessionStorage
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        selected_text:
+          type: string
+          maxLength: 2000
+          nullable: true
+          description: Optional text selection for context
+          example: "The robot arm consists of multiple joints..."
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - citations
+        - sources
+        - retrieval_time_ms
+        - answer_time_ms
+        - citation_time_ms
+        - total_time_ms
+      properties:
+        answer:
+          type: string
+          description: Generated answer from Answer Agent
+          example: "Forward kinematics is the process..."
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+          description: Source citations with links
+        sources:
+          type: array
+          items:
+            type: string
+          description: Unique document titles referenced
+          example: ["Robotics Fundamentals", "Kinematic Chains"]
+        retrieval_time_ms:
+          type: integer
+          minimum: 0
+          description: Time spent in Retrieval Agent (ms)
+        answer_time_ms:
+          type: integer
+          minimum: 0
+          description: Time spent in Answer Agent (ms)
+        citation_time_ms:
+          type: integer
+          minimum: 0
+          description: Time spent in Citation Agent (ms)
+        total_time_ms:
+          type: integer
+          minimum: 0
+          description: Total query processing time (ms)
+
+    Citation:
+      type: object
+      required:
+        - title
+        - anchor
+        - url
+      properties:
+        title:
+          type: string
+          description: Document title
+          example: "Robotics Fundamentals"
+        anchor:
+          type: string
+          description: Docusaurus heading anchor ID
+          example: "forward-kinematics"
+        url:
+          type: string
+          description: Full URL with hash
+          example: "/docs/chapter-01#forward-kinematics"
+
+    FeedbackRequest:
+      type: object
+      required:
+        - query_id
+        - feedback_type
+      properties:
+        query_id:
+          type: string
+          format: uuid
+          description: Query ID to provide feedback for
+        feedback_type:
+          type: string
+          enum: [positive, negative]
+          description: Thumbs up or thumbs down
+
+    FeedbackResponse:
+      type: object
+      required:
+        - feedback_id
+        - message
+      properties:
+        feedback_id:
+          type: string
+          format: uuid
+        message:
+          type: string
+          example: "Feedback recorded successfully"
+
+    SyncTriggerRequest:
+      type: object
+      properties:
+        force:
+          type: boolean
+          default: false
+          description: Force re-sync all files (ignores timestamps)
+
+    SyncTriggerResponse:
+      type: object
+      required:
+        - sync_id
+        - status
+        - message
+      properties:
+        sync_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [running]
+        message:
+          type: string
+          example: "Sync job started successfully"
+
+    SyncJobStatus:
+      type: object
+      required:
+        - sync_id
+        - start_time
+        - status
+        - files_processed
+        - files_failed
+      properties:
+        sync_id:
+          type: string
+          format: uuid
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [running, completed, failed]
+        files_processed:
+          type: integer
+          minimum: 0
+        files_failed:
+          type: integer
+          minimum: 0
+        error_log:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncError'
+
+    SyncError:
+      type: object
+      required:
+        - file_path
+        - error_message
+      properties:
+        file_path:
+          type: string
+        error_message:
+          type: string
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        checks:
+          type: object
+          properties:
+            database:
+              type: string
+              enum: [ok, error]
+            qdrant:
+              type: string
+              enum: [ok, error]
+            mcp_server:
+              type: string
+              enum: [ok, error]
+            openai_api:
+              type: string
+              enum: [ok, error]
+        version:
+          type: string
+          example: "1.0.0"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        error_code:
+          type: string
+          description: Machine-readable error code
+        details:
+          type: object
+          description: Additional error context
+
+    ValidationError:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
