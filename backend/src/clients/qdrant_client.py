@@ -195,12 +195,13 @@ async def search_similar_chunks(
         )
 
     try:
-        search_result = await client.search(
+        search_result = await client.query_points(
             collection_name=settings.qdrant_collection_name,
-            query_vector=query_embedding,
+            query=query_embedding,
             limit=top_k,
             score_threshold=score_threshold,
             query_filter=query_filter,
+            with_payload=True,
         )
 
         chunks = [
@@ -208,7 +209,7 @@ async def search_similar_chunks(
                 **hit.payload,
                 "similarity_score": hit.score,
             }
-            for hit in search_result
+            for hit in search_result.points
         ]
 
         logger.info(

@@ -118,21 +118,22 @@ class RetrievalService:
             # Step 2: Search Qdrant for similar chunks
             qdrant_client = get_qdrant_client()
 
-            search_results = await qdrant_client.search(
+            search_results = await qdrant_client.query_points(
                 collection_name=self.settings.qdrant_collection_name,
-                query_vector=query_embedding,
+                query=query_embedding,
                 limit=top_k,
-                score_threshold=score_threshold
+                score_threshold=score_threshold,
+                with_payload=True
             )
 
             logger.debug(
                 "Qdrant search completed",
-                results_count=len(search_results)
+                results_count=len(search_results.points)
             )
 
             # Step 3: Convert to RetrievedChunk objects with ranking
             retrieved_chunks = []
-            for rank, hit in enumerate(search_results, start=1):
+            for rank, hit in enumerate(search_results.points, start=1):
                 chunk = RetrievedChunk(
                     chunk_id=hit.payload.get("chunk_id", f"unknown_{rank}"),
                     chunk_text=hit.payload.get("chunk_text", ""),
