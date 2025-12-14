@@ -16,15 +16,15 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
  * @returns {Promise<Object>} Query response with answer and citations
  */
 export async function submitQuery({ query, session_id, selected_text }) {
-  const response = await fetch(`${API_BASE_URL}/api/query`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      query,
-      session_id,
-      selected_text,
+      question: query,  // Gemini API uses 'question' field
+      max_results: 5,
+      score_threshold: 0.7,
     }),
   });
 
