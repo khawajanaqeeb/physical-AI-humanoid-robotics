@@ -6,13 +6,29 @@ the status of all system components.
 """
 
 from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
 
 from src.api.schemas import HealthResponse
 from src.database import check_database_connection
 from src.clients.qdrant_client import check_qdrant_connection
-from src.clients.openai_client import check_openai_connection
 from src.clients.mcp_client import check_mcp_connection
 from src.config.logging import get_logger
+
+# Gemini health check
+async def check_gemini_connection() -> bool:
+    """Check if Gemini API is accessible."""
+    try:
+        import google.generativeai as genai
+        from src.config.settings import get_settings
+
+        settings = get_settings()
+        genai.configure(api_key=settings.gemini_api_key)
+
+        # Simple API check - list available models
+        models = genai.list_models()
+        return True
+    except Exception:
+        return False
 
 logger = get_logger(__name__)
 
@@ -27,7 +43,7 @@ async def health_check():
     This endpoint checks:
     - Database connection (Neon Postgres)
     - Qdrant Cloud connection
-    - OpenAI API connection
+    - Google Gemini API connection
     - MCP server accessibility
 
     Returns:
@@ -44,9 +60,9 @@ async def health_check():
                 "database": "ok",
                 "qdrant": "ok",
                 "mcp_server": "ok",
-                "openai_api": "ok"
+                "gemini_api": "ok"
             },
-            "version": "1.0.0"
+            "version": "2.0.0"
         }
         ```
     """
@@ -91,17 +107,17 @@ async def health_check():
         all_healthy = False
         logger.error("mcp_health_check_error", error=str(e))
 
-    # Check OpenAI API
+    # Check Gemini API
     try:
-        openai_healthy = await check_openai_connection()
-        checks["openai_api"] = "ok" if openai_healthy else "error"
-        if not openai_healthy:
+        gemini_healthy = await check_gemini_connection()
+        checks["gemini_api"] = "ok" if gemini_healthy else "error"
+        if not gemini_healthy:
             all_healthy = False
-            logger.warning("openai_health_check_failed")
+            logger.warning("gemini_health_check_failed")
     except Exception as e:
-        checks["openai_api"] = "error"
+        checks["gemini_api"] = "error"
         all_healthy = False
-        logger.error("openai_health_check_error", error=str(e))
+        logger.error("gemini_health_check_error", error=str(e))
 
     overall_status = "healthy" if all_healthy else "unhealthy"
 
@@ -111,14 +127,20 @@ async def health_check():
         checks=checks,
     )
 
-    response = HealthResponse(
-        status=overall_status,
-        checks=checks,
-        version="1.0.0",
-    )
+    response_data = {
+        "status": overall_status,
+        "checks": checks,
+        "version": "2.0.0",
+    }
 
-    # Return 503 if unhealthy
+    # Return 503 if unhealthy, otherwise 200
     if not all_healthy:
-        return response, status.HTTP_503_SERVICE_UNAVAILABLE
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=response_data
+        )
 
-    return response
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content=response_data
+    )
