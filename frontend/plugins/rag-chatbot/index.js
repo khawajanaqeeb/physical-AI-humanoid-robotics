@@ -12,19 +12,5 @@ module.exports = function ragChatbotPlugin(context, options) {
     getClientModules() {
       return [require.resolve('./chatWidget.js')];
     },
-
-    injectHtmlTags() {
-      return {
-        headTags: [
-          {
-            tagName: 'link',
-            attributes: {
-              rel: 'stylesheet',
-              href: '/rag-chatbot-styles.css',
-            },
-          },
-        ],
-      };
-    },
   };
 };

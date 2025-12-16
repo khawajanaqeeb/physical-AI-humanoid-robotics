@@ -4,7 +4,8 @@
  * Handles communication with the backend API.
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Use hardcoded URL for now (can be configured via docusaurus.config.js customFields later)
+const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Submit a query to the RAG pipeline
@@ -22,7 +23,7 @@ export async function submitQuery({ query, session_id, selected_text }) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      question: query,  // Gemini API uses 'question' field
+      query: query,  // Cohere API uses 'query' field
       max_results: 5,
       score_threshold: 0.7,
     }),

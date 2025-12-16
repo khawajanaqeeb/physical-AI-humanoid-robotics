@@ -180,6 +180,11 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
+
+  plugins: [
+    // RAG Chatbot Plugin
+    './plugins/rag-chatbot',
+  ],
 };
 
 export default config;

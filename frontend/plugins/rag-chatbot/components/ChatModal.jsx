@@ -63,13 +63,9 @@ export default function ChatModal({ onClose, initialText = '' }) {
       updateLastMessage({
         role: 'assistant',
         content: response.answer,
-        citations: response.citations,
-        sources: response.sources,
+        sources: response.sources,  // Our API returns sources as SourceCitation array
         timing: {
-          retrieval_time_ms: response.retrieval_time_ms,
-          answer_time_ms: response.answer_time_ms,
-          citation_time_ms: response.citation_time_ms,
-          total_time_ms: response.total_time_ms,
+          response_time_ms: response.response_time_ms,
         },
         isLoading: false,
         timestamp: new Date().toISOString(),
@@ -135,22 +131,20 @@ export default function ChatModal({ onClose, initialText = '' }) {
                 )}
 
                 {/* Citations */}
-                {message.citations && message.citations.length > 0 && (
+                {message.sources && message.sources.length > 0 && (
                   <div className="chat-citations">
                     <p className="chat-citations-label">Sources:</p>
-                    {message.citations.map((citation, idx) => (
-                      <Citation key={idx} citation={citation} />
+                    {message.sources.map((source, idx) => (
+                      <Citation key={idx} citation={source} />
                     ))}
                   </div>
                 )}
 
-                {/* Timing info (debug, can be removed) */}
+                {/* Timing info */}
                 {message.timing && (
                   <div className="chat-timing">
                     <small>
-                      Retrieval: {message.timing.retrieval_time_ms}ms |
-                      Answer: {message.timing.answer_time_ms}ms |
-                      Total: {message.timing.total_time_ms}ms
+                      Response time: {message.timing.response_time_ms}ms
                     </small>
                   </div>
                 )}

@@ -1,137 +1,136 @@
 """
-Query API endpoint for processing user questions.
+Query endpoint for textbook Q&A.
 
-This module handles the /api/query endpoint that orchestrates
-the RAG pipeline and returns answers with citations.
+Handles user questions and returns generated answers with citations.
 """
 
-from uuid import UUID
-
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Request, status
 from fastapi.responses import JSONResponse
 
-from src.api.schemas import QueryRequest, QueryResponse
-from src.services.rag_service import get_rag_service
-from src.repositories.query_repository import get_query_repository
-from src.config.logging import get_logger
+from src.api.middleware.rate_limit import limiter
+from src.api.schemas.request import QueryRequest
+from src.api.schemas.response import QueryResponse, SourceCitationResponse
+from src.core.logging_config import get_logger
+from src.services.rag_service import rag_service
 
 logger = get_logger(__name__)
 
+# Create router
 router = APIRouter()
 
 
-@router.post("/query", response_model=QueryResponse, status_code=status.HTTP_200_OK)
-async def process_query(request: QueryRequest):
+@router.post(
+    "/query",
+    response_model=QueryResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Query textbook content",
+    description="Submit a question and receive an AI-generated answer with source citations from the textbook.",
+)
+@limiter.limit("10/minute")  # Rate limit: 10 requests per minute per IP
+async def query_textbook(
+    request: Request,
+    query_request: QueryRequest,
+) -> QueryResponse:
     """
-    Process a user query through the RAG pipeline.
-
-    This endpoint:
-    1. Validates the query (language, scope)
-    2. Retrieves relevant chunks from Qdrant
-    3. Generates an answer using GPT-4
-    4. Creates citations with Docusaurus links
-    5. Logs the query to the database
-    6. Returns the response with timing information
+    Process user query and return answer with citations.
 
     Args:
-        request: QueryRequest with query, session_id, and optional selected_text
+        request: FastAPI request object (for rate limiting)
+        query_request: User query with optional parameters
 
     Returns:
-        QueryResponse with answer, citations, sources, and timing
+        QueryResponse with answer and source citations
 
-    Raises:
-        HTTPException 400: Invalid request (non-English, out of scope)
-        HTTPException 422: Validation error
-        HTTPException 500: Internal server error
+    Rate Limit:
+        10 requests per minute per IP address
 
-    Example:
-        ```
-        POST /api/query
+    Example Request:
+        ```json
         {
-            "query": "What is forward kinematics?",
-            "session_id": "550e8400-e29b-41d4-a716-446655440000"
+            "query": "What are the main components of a humanoid robot?",
+            "max_results": 5
+        }
+        ```
+
+    Example Response:
+        ```json
+        {
+            "session_id": "550e8400-e29b-41d4-a716-446655440000",
+            "query": "What are the main components of a humanoid robot?",
+            "answer": "Based on the textbook...",
+            "sources": [...],
+            "response_time_ms": 1850,
+            "chunks_retrieved": 5
         }
         ```
     """
+    # Log request
     logger.info(
-        "query_request_received",
-        session_id=request.session_id,
-        query_preview=request.query[:50],
-        has_selection=request.selected_text is not None,
+        "Query request received",
+        extra={
+            "query_length": len(query_request.query),
+            "max_results": query_request.max_results,
+            "client_ip": request.client.host if request.client else "unknown",
+        },
     )
 
     try:
-        # Parse session_id as UUID
-        try:
-            session_uuid = UUID(request.session_id)
-        except ValueError:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "Invalid session_id format. Must be a valid UUID.",
-                    "error_code": "INVALID_SESSION_ID",
-                }
-            )
-
         # Process query through RAG service
-        rag_service = get_rag_service()
-        query_result = await rag_service.process_query(
-            query_text=request.query,
-            session_id=session_uuid,
-            selected_text=request.selected_text,
+        session = rag_service.query_textbook(
+            query_text=query_request.query,
+            max_results=query_request.max_results,
         )
 
-        # Save query to database (async, don't block response)
-        try:
-            query_repo = get_query_repository()
-            await query_repo.save_query(query_result)
-        except Exception as e:
-            # Log error but don't fail the request
-            logger.error(
-                "query_logging_failed",
-                query_id=str(query_result.query_id),
-                error=str(e),
+        # Convert SourceCitation to SourceCitationResponse
+        source_responses = [
+            SourceCitationResponse(
+                page_url=citation.page_url,
+                page_title=citation.page_title,
+                chunk_text=citation.chunk_text,
+                relevance_score=citation.relevance_score,
             )
+            for citation in session.source_citations
+        ]
 
-        # Extract unique sources
-        citation_agent = rag_service.citation_agent
-        sources = citation_agent.extract_unique_sources(query_result.citations)
-
-        # Build response
+        # Create response
         response = QueryResponse(
-            answer=query_result.answer_text,
-            citations=query_result.citations,
-            sources=sources,
-            retrieval_time_ms=query_result.retrieval_time_ms,
-            answer_time_ms=query_result.answer_time_ms,
-            citation_time_ms=query_result.citation_time_ms,
-            total_time_ms=query_result.total_time_ms,
+            session_id=session.session_id,
+            query=session.query_text,
+            answer=session.generated_response,
+            sources=source_responses,
+            response_time_ms=session.response_time_ms,
+            chunks_retrieved=len(session.retrieved_chunks),
         )
 
+        # Log successful response
         logger.info(
-            "query_request_completed",
-            query_id=str(query_result.query_id),
-            session_id=str(session_uuid),
-            total_time_ms=query_result.total_time_ms,
+            "Query processed successfully",
+            extra={
+                "session_id": str(session.session_id),
+                "response_time_ms": session.response_time_ms,
+                "chunks_retrieved": len(session.retrieved_chunks),
+                "citations": len(session.source_citations),
+            },
         )
 
         return response
 
-    except HTTPException:
-        # Re-raise HTTP exceptions (validation errors from language/scope checks)
-        raise
-
     except Exception as e:
+        # Log error
         logger.error(
-            "query_request_failed",
-            error=str(e),
-            error_type=type(e).__name__,
+            f"Query processing failed: {e}",
+            extra={
+                "query": query_request.query[:100],  # Log first 100 chars
+                "error": str(e),
+            },
+            exc_info=True,
         )
 
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "An error occurred while processing your query. Please try again.",
-                "error_code": "INTERNAL_ERROR",
-            }
+        # Return error response
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": "Internal Server Error",
+                "message": "Failed to process query. Please try again later.",
+            },
         )

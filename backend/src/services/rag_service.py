@@ -1,210 +1,383 @@
 """
-RAG Service - Orchestrates the multi-agent RAG pipeline.
+RAG (Retrieval-Augmented Generation) service for answering user queries.
 
-This service coordinates Retrieval → Answer → Citation agents
-to process user queries and generate responses.
+Orchestrates query embedding, vector search, answer generation, and citation extraction.
 """
 
 import time
-from typing import Optional
-from uuid import UUID
+from typing import List, Dict, Any, Optional
 
-from src.agents.retrieval_agent import get_retrieval_agent
-from src.agents.answer_agent import get_answer_agent
-from src.agents.citation_agent import get_citation_agent
-from src.models import Query, Citation
-from src.middleware.language_validator import validate_query_language, detect_out_of_scope_query
-from src.config.logging import get_logger
-from fastapi import HTTPException
+from src.core.logging_config import get_logger
+from src.models.query_session import QuerySession, SourceCitation
+from src.models.chunk import DocumentChunk
+from src.services.cohere_service import cohere_service
+from src.services.qdrant_service import qdrant_service
+from src.utils.text_processing import truncate_text
 
 logger = get_logger(__name__)
 
 
 class RAGService:
     """
-    Service that orchestrates the RAG pipeline.
+    Service for Retrieval-Augmented Generation.
 
-    Pipeline flow:
-    1. Validate language (English only)
-    2. Retrieval Agent: Get relevant chunks
-    3. Answer Agent: Generate answer from chunks
-    4. Citation Agent: Create citations
-    5. Return response with timing
+    Workflow:
+    1. Embed user query
+    2. Search Qdrant for similar chunks
+    3. Generate answer using Cohere with retrieved context
+    4. Extract citations from response
     """
 
-    def __init__(self):
-        """Initialize RAG Service with all agents."""
-        self.retrieval_agent = get_retrieval_agent()
-        self.answer_agent = get_answer_agent()
-        self.citation_agent = get_citation_agent()
-        logger.info("rag_service_initialized")
+    # RAG configuration
+    DEFAULT_TOP_K = 5
+    DEFAULT_SCORE_THRESHOLD = 0.5
+    GENERATION_TEMPERATURE = 0.3
+    MAX_GENERATION_TOKENS = 500
 
-    async def process_query(
+    # Response constants
+    NOT_FOUND_MESSAGE = "I could not find this information in the textbook."
+
+    def __init__(self):
+        """Initialize RAG service."""
+        logger.info("RAGService initialized")
+
+    def query_textbook(
         self,
         query_text: str,
-        session_id: UUID,
-        selected_text: Optional[str] = None,
-    ) -> Query:
+        max_results: int = DEFAULT_TOP_K,
+        score_threshold: float = DEFAULT_SCORE_THRESHOLD,
+    ) -> QuerySession:
         """
-        Process a user query through the RAG pipeline.
+        Process complete query workflow.
 
         Args:
-            query_text: User question
-            session_id: Browser session UUID
-            selected_text: Optional text selection for context
+            query_text: User's question
+            max_results: Maximum number of chunks to retrieve
+            score_threshold: Minimum similarity score (0.0-1.0)
 
         Returns:
-            Query object with answer, citations, and timing
-
-        Raises:
-            HTTPException: If query validation fails
-
-        Example:
-            >>> service = RAGService()
-            >>> result = await service.process_query(
-            ...     "What is forward kinematics?",
-            ...     session_id=UUID("...")
-            ... )
-            >>> print(result.answer_text)
+            QuerySession with answer and citations
         """
-        pipeline_start = time.time()
-
-        logger.info(
-            "rag_pipeline_started",
-            session_id=str(session_id),
-            query_preview=query_text[:50],
-            has_selection=selected_text is not None,
-        )
+        start_time = time.time()
 
         try:
-            # Step 0: Validate language
-            await validate_query_language(query_text)
-
-            # Step 0.5: Check if query is out of scope
-            is_out_of_scope = await detect_out_of_scope_query(query_text)
-            if is_out_of_scope:
-                raise HTTPException(
-                    status_code=400,
-                    detail={
-                        "error": "This question is outside the scope of the textbook. Please ask about robotics, AI, or related topics covered in the textbook.",
-                        "error_code": "OUT_OF_SCOPE",
-                    }
-                )
-
-            # Step 1: Retrieval Agent - Get relevant chunks
-            file_path_filter = None
-            if selected_text:
-                # If text selection is provided, we could extract file path
-                # For now, just use it as additional context in the query
-                logger.debug("text_selection_provided", selection_preview=selected_text[:50])
-
-            chunks, retrieval_time_ms = await self.retrieval_agent.retrieve(
-                query=query_text,
-                file_path_filter=file_path_filter,
+            logger.info(
+                "Processing query",
+                extra={
+                    "query_length": len(query_text),
+                    "max_results": max_results,
+                    "score_threshold": score_threshold,
+                },
             )
 
-            if not chunks:
-                # No relevant chunks found
-                logger.warning("no_chunks_retrieved", query_preview=query_text[:50])
+            # Step 1: Embed query
+            embedding_start = time.time()
+            query_embedding = cohere_service.embed(
+                texts=[query_text],
+                input_type="search_query",
+            )[0]
+            embedding_time = int((time.time() - embedding_start) * 1000)
 
-                return Query(
-                    query_id=UUID(),
+            # Step 2: Retrieve similar chunks
+            retrieval_start = time.time()
+            search_results = qdrant_service.search(
+                query_vector=query_embedding,
+                limit=max_results,
+                score_threshold=score_threshold,
+            )
+            retrieval_time = int((time.time() - retrieval_start) * 1000)
+
+            logger.debug(
+                f"Retrieved {len(search_results)} chunks",
+                extra={"result_count": len(search_results)},
+            )
+
+            # Check if any results found
+            if not search_results:
+                # No relevant information found
+                total_time = int((time.time() - start_time) * 1000)
+
+                return QuerySession(
                     query_text=query_text,
-                    user_session_id=session_id,
-                    selected_text=selected_text,
-                    retrieved_chunk_ids=[],
-                    answer_text="I couldn't find relevant information in the textbook to answer this question. Please try rephrasing or asking about a topic covered in the textbook.",
-                    citations=[],
-                    similarity_scores=[],
-                    retrieval_time_ms=retrieval_time_ms,
-                    answer_time_ms=0,
-                    citation_time_ms=0,
-                    total_time_ms=int((time.time() - pipeline_start) * 1000),
+                    embedding_vector=query_embedding,
+                    retrieved_chunks=[],
+                    generated_response=self.NOT_FOUND_MESSAGE,
+                    source_citations=[],
+                    response_time_ms=total_time,
+                    retrieval_score_threshold=score_threshold,
                 )
 
-            # Extract context for Answer Agent
-            context = self.retrieval_agent.extract_context(chunks)
+            # Convert search results to DocumentChunk objects
+            retrieved_chunks = self._results_to_chunks(search_results)
 
-            # Extract chunk IDs and similarity scores
-            chunk_ids = [chunk["chunk_id"] for chunk in chunks]
-            similarity_scores = [chunk["similarity_score"] for chunk in chunks]
-
-            # Step 2: Answer Agent - Generate answer
-            answer, answer_time_ms = await self.answer_agent.generate_answer(
+            # Step 3: Generate answer
+            generation_start = time.time()
+            answer_data = self.generate_answer(
                 query=query_text,
-                context=context,
+                chunks=retrieved_chunks,
             )
+            generation_time = int((time.time() - generation_start) * 1000)
 
-            # Validate answer
-            is_valid = self.answer_agent.validate_answer(answer, context)
-            if not is_valid:
-                logger.warning("answer_validation_failed")
-                # Could implement retry logic here
-
-            # Step 3: Citation Agent - Generate citations
-            citations, citation_time_ms = await self.citation_agent.generate_citations(
-                answer=answer,
-                source_chunks=chunks,
+            # Step 4: Extract citations
+            citation_start = time.time()
+            logger.info("Starting citation extraction...")
+            citations = self.extract_citations(
+                chunks=retrieved_chunks,
+                cohere_citations=answer_data.get("citations", []),
+                search_results=search_results,
             )
+            citation_time = int((time.time() - citation_start) * 1000)
+            logger.info(f"Citation extraction completed: {len(citations)} citations")
 
-            # Calculate total time
-            total_time_ms = int((time.time() - pipeline_start) * 1000)
+            total_time = int((time.time() - start_time) * 1000)
 
-            # Create Query object
-            query_result = Query(
+            # Create QuerySession
+            session = QuerySession(
                 query_text=query_text,
-                user_session_id=session_id,
-                selected_text=selected_text,
-                retrieved_chunk_ids=chunk_ids,
-                answer_text=answer,
-                citations=citations,
-                similarity_scores=similarity_scores,
-                retrieval_time_ms=retrieval_time_ms,
-                answer_time_ms=answer_time_ms,
-                citation_time_ms=citation_time_ms,
-                total_time_ms=total_time_ms,
+                embedding_vector=query_embedding,
+                retrieved_chunks=retrieved_chunks,
+                generated_response=answer_data.get("answer", ""),
+                source_citations=citations,
+                response_time_ms=total_time,
+                retrieval_score_threshold=score_threshold,
             )
 
             logger.info(
-                "rag_pipeline_completed",
-                query_id=str(query_result.query_id),
-                session_id=str(session_id),
-                chunks_retrieved=len(chunks),
-                citations_generated=len(citations),
-                total_time_ms=total_time_ms,
+                "Query completed successfully",
+                extra={
+                    "session_id": str(session.session_id),
+                    "response_time_ms": total_time,
+                    "chunks_retrieved": len(retrieved_chunks),
+                    "citations": len(citations),
+                    "timing": {
+                        "embedding_ms": embedding_time,
+                        "retrieval_ms": retrieval_time,
+                        "generation_ms": generation_time,
+                        "citation_ms": citation_time,
+                    },
+                },
             )
 
-            return query_result
-
-        except HTTPException:
-            # Re-raise HTTP exceptions (validation errors)
-            raise
+            return session
 
         except Exception as e:
-            total_time_ms = int((time.time() - pipeline_start) * 1000)
-            logger.error(
-                "rag_pipeline_failed",
+            logger.error(f"Error processing query: {e}", exc_info=True)
+
+            # Return error session
+            total_time = int((time.time() - start_time) * 1000)
+            return QuerySession(
+                query_text=query_text,
+                embedding_vector=[0.0] * 1024,  # Placeholder
+                retrieved_chunks=[],
+                generated_response="",
+                source_citations=[],
+                response_time_ms=total_time,
+                retrieval_score_threshold=score_threshold,
                 error=str(e),
-                error_type=type(e).__name__,
-                total_time_ms=total_time_ms,
             )
-            raise
+
+    def generate_answer(
+        self,
+        query: str,
+        chunks: List[DocumentChunk],
+    ) -> Dict[str, Any]:
+        """
+        Generate answer using Cohere with retrieved chunks.
+
+        Args:
+            query: User's question
+            chunks: Retrieved DocumentChunk objects
+
+        Returns:
+            dict with 'answer' and 'citations' fields
+        """
+        # Prepare documents for Cohere
+        documents = [
+            {
+                "text": chunk.content_text,
+                "title": chunk.page_title,
+                "url": chunk.page_url,
+            }
+            for chunk in chunks
+        ]
+
+        logger.debug(f"Generating answer with {len(documents)} documents")
+
+        # Call Cohere generate
+        result = cohere_service.generate(
+            query=query,
+            documents=documents,
+            temperature=self.GENERATION_TEMPERATURE,
+            max_tokens=self.MAX_GENERATION_TOKENS,
+        )
+
+        return result
+
+    def extract_citations(
+        self,
+        chunks: List[DocumentChunk],
+        cohere_citations: List[Any],
+        search_results: List[Dict[str, Any]],
+    ) -> List[SourceCitation]:
+        """
+        Extract citations from Cohere response and retrieved chunks.
+
+        Args:
+            chunks: Retrieved DocumentChunk objects
+            cohere_citations: Citations from Cohere response
+            search_results: Raw search results with scores
+
+        Returns:
+            List of SourceCitation objects
+        """
+        citations = []
+        seen_urls = set()
+
+        # Create score lookup
+        score_lookup = {
+            result["payload"]["chunk_id"]: result["score"]
+            for result in search_results
+        }
+
+        logger.info(f"Extracting citations from {len(chunks)} chunks, cohere_citations={len(cohere_citations)}")
+
+        # If Cohere provides specific citations, use those
+        if cohere_citations:
+            logger.info("Using Cohere citations")
+            # Create chunk lookup by index (Cohere citations reference document indices)
+            chunk_lookup = {i: chunk for i, chunk in enumerate(chunks)}
+
+            for i, cohere_citation in enumerate(cohere_citations):
+                # Get document IDs from Cohere citation
+                # Cohere citations have 'document_ids' which is a list of document indices
+                document_ids = getattr(cohere_citation, 'document_ids', None)
+
+                if i == 0:  # Log first citation details for debugging
+                    logger.info(f"First citation: document_ids={document_ids}")
+
+                if not document_ids or len(document_ids) == 0:
+                    continue
+
+                # Extract document index from Cohere's format (e.g., 'doc_3' -> 3)
+                doc_id_str = document_ids[0]
+                try:
+                    # Parse 'doc_N' format to extract integer index
+                    if isinstance(doc_id_str, str) and doc_id_str.startswith('doc_'):
+                        doc_idx = int(doc_id_str.split('_')[1])
+                    else:
+                        doc_idx = int(doc_id_str)
+                except (ValueError, IndexError):
+                    logger.warning(f"Could not parse document ID: {doc_id_str}")
+                    continue
+
+                if doc_idx in chunk_lookup:
+                    chunk = chunk_lookup[doc_idx]
+
+                    # Skip duplicate URLs
+                    if chunk.page_url in seen_urls:
+                        continue
+
+                    seen_urls.add(chunk.page_url)
+
+                    # Get relevance score
+                    relevance_score = score_lookup.get(chunk.chunk_id, 0.0)
+
+                    # Truncate chunk text for preview
+                    chunk_preview = truncate_text(
+                        text=chunk.content_text,
+                        max_length=300,
+                        suffix="...",
+                    )
+
+                    citation = SourceCitation(
+                        page_url=chunk.page_url,
+                        page_title=chunk.page_title,
+                        chunk_text=chunk_preview,
+                        relevance_score=relevance_score,
+                    )
+
+                    citations.append(citation)
+        else:
+            # Fallback: use all chunks if no specific citations from Cohere
+            logger.debug("Using fallback citation extraction from all chunks")
+            for chunk in chunks:
+                try:
+                    # Skip duplicate URLs
+                    if chunk.page_url in seen_urls:
+                        continue
+
+                    seen_urls.add(chunk.page_url)
+
+                    # Get relevance score
+                    relevance_score = score_lookup.get(chunk.chunk_id, 0.0)
+
+                    # Truncate chunk text for preview
+                    chunk_preview = truncate_text(
+                        text=chunk.content_text,
+                        max_length=300,
+                        suffix="...",
+                    )
+
+                    # Ensure chunk_preview is not empty
+                    if not chunk_preview or not chunk_preview.strip():
+                        logger.warning(f"Empty chunk text for {chunk.chunk_id}, skipping citation")
+                        continue
+
+                    # Ensure page_title is not empty
+                    page_title = chunk.page_title if chunk.page_title and chunk.page_title.strip() else "Untitled"
+
+                    citation = SourceCitation(
+                        page_url=chunk.page_url,
+                        page_title=page_title,
+                        chunk_text=chunk_preview,
+                        relevance_score=relevance_score,
+                    )
+
+                    citations.append(citation)
+                    logger.debug(f"Added citation for {chunk.page_url}")
+                except Exception as e:
+                    logger.error(f"Error creating citation for chunk {chunk.chunk_id}: {e}", exc_info=True)
+                    continue
+
+        logger.info(f"Extracted {len(citations)} citations")
+
+        return citations
+
+    def _results_to_chunks(
+        self,
+        search_results: List[Dict[str, Any]],
+    ) -> List[DocumentChunk]:
+        """
+        Convert Qdrant search results to DocumentChunk objects.
+
+        Args:
+            search_results: List of search results from Qdrant
+
+        Returns:
+            List of DocumentChunk objects
+        """
+        chunks = []
+
+        for result in search_results:
+            payload = result["payload"]
+
+            # Note: embedding_vector not returned from search, use placeholder
+            chunk = DocumentChunk(
+                chunk_id=payload["chunk_id"],
+                content_text=payload["content_text"],
+                embedding_vector=[0.0] * 1024,  # Placeholder (not needed for response)
+                page_url=payload["page_url"],
+                page_title=payload["page_title"],
+                section_heading=payload.get("section_heading"),
+                chunk_index=payload["chunk_index"],
+                character_count=payload["character_count"],
+                ingestion_timestamp=payload["ingestion_timestamp"],
+            )
+
+            chunks.append(chunk)
+
+        return chunks
 
 
-# Singleton instance
-_rag_service: Optional[RAGService] = None
-
-
-def get_rag_service() -> RAGService:
-    """
-    Get or create the RAG Service instance.
-
-    Returns:
-        RAGService singleton instance
-    """
-    global _rag_service
-
-    if _rag_service is None:
-        _rag_service = RAGService()
-
-    return _rag_service
+# Global service instance
+rag_service = RAGService()
