@@ -183,7 +183,7 @@ const config: Config = {
 
   plugins: [
     // RAG Chatbot Plugin
-    './plugins/rag-chatbot',
+    './frontend/plugins/rag-chatbot',
   ],
 };
 
