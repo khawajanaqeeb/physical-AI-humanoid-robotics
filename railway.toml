@@ -1,9 +1,9 @@
 [build]
 builder = "NIXPACKS"
-nixpacksConfigPath = "backend/nixpacks.toml"
+buildCommand = "pip install -r requirements.txt"
 
 [deploy]
-startCommand = "cd backend && uvicorn src.main:app --host 0.0.0.0 --port $PORT"
+startCommand = "uvicorn src.main:app --host 0.0.0.0 --port $PORT"
 healthcheckPath = "/health"
 healthcheckTimeout = 100
 restartPolicyType = "ON_FAILURE"
