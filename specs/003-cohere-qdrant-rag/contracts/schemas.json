@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RAG Chatbot API Schemas",
+  "description": "JSON schemas for request and response validation",
+  "definitions": {
+    "QueryRequest": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "max_results": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 5
+        }
+      },
+      "additionalProperties": false
+    },
+    "QueryResponse": {
+      "type": "object",
+      "required": ["answer", "sources", "metadata"],
+      "properties": {
+        "answer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sources": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SourceCitation" },
+          "minItems": 1
+        },
+        "metadata": {
+          "type": "object",
+          "required": ["session_id", "response_time_ms"],
+          "properties": {
+            "session_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "response_time_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "retrieval_score_threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "chunks_retrieved": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "SourceCitation": {
+      "type": "object",
+      "required": ["page_url", "page_title", "chunk_text", "relevance_score"],
+      "properties": {
+        "page_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "page_title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "chunk_text": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "relevance_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "IngestRequest": {
+      "type": "object",
+      "properties": {
+        "force_refresh": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "IngestResponse": {
+      "type": "object",
+      "required": ["job_id", "status", "pages_processed", "chunks_created"],
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "running", "completed", "failed"]
+        },
+        "pages_processed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunks_created": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "chunks_updated": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "errors_encountered": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ErrorRecord" }
+        },
+        "start_time": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end_time": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "HealthResponse": {
+      "type": "object",
+      "required": ["status", "services", "timestamp"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["healthy", "degraded", "unhealthy"]
+        },
+        "services": {
+          "type": "object",
+          "properties": {
+            "cohere": { "$ref": "#/definitions/ServiceStatus" },
+            "qdrant": { "$ref": "#/definitions/ServiceStatus" }
+          }
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ServiceStatus": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["operational", "degraded", "down"]
+        },
+        "latency_ms": {
+          "type": ["integer", "null"]
+        },
+        "error": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "ErrorRecord": {
+      "type": "object",
+      "required": ["page_url", "error_type", "error_message", "timestamp"],
+      "properties": {
+        "page_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "error_type": {
+          "type": "string"
+        },
+        "error_message": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["error", "message"],
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": ["object", "null"]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

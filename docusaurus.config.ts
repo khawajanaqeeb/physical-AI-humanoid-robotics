@@ -183,7 +183,12 @@ const config: Config = {
 
   plugins: [
     // RAG Chatbot Plugin
-    './frontend/plugins/rag-chatbot',
+    [
+      './frontend/plugins/rag-chatbot',
+      {
+        backendUrl: process.env.BACKEND_URL || 'http://localhost:8000',
+      },
+    ],
   ],
 };
 

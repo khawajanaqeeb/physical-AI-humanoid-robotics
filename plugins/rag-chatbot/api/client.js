@@ -4,25 +4,8 @@
  * Handles communication with the backend API.
  */
 
-// Use environment variable or fallback to relative URL
-// This allows configuration via Docusaurus customFields or environment variables
-const API_BASE_URL = typeof window !== 'undefined'
-  ? (process.env.REACT_APP_API_BASE_URL || window.ENV?.API_BASE_URL || '')
-  : process.env.REACT_APP_API_BASE_URL || '';
-
-// For Docusaurus, we can also check for custom fields in the config
-// This provides multiple fallbacks for different deployment scenarios
-const getApiBaseUrl = () => {
-  // Check for custom field in docusaurus config first
-  if (typeof window !== 'undefined' && window.__APP_ENV__?.BACKEND_URL) {
-    return window.__APP_ENV__.BACKEND_URL;
-  }
-
-  // Fallback to environment variable
-  return API_BASE_URL;
-};
-
-const BASE_URL = getApiBaseUrl();
+// Use hardcoded URL for now (can be configured via docusaurus.config.js customFields later)
+const API_BASE_URL = 'http://localhost:8000';
 
 /**
  * Submit a query to the RAG pipeline
@@ -34,7 +17,7 @@ const BASE_URL = getApiBaseUrl();
  * @returns {Promise<Object>} Query response with answer and citations
  */
 export async function submitQuery({ query, session_id, selected_text }) {
-  const response = await fetch(`${BASE_URL}/api/v1/query`, {
+  const response = await fetch(`${API_BASE_URL}/api/v1/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -76,7 +59,7 @@ export async function submitQuery({ query, session_id, selected_text }) {
  * @returns {Promise<Object>} Feedback confirmation
  */
 export async function submitFeedback({ query_id, is_helpful, feedback_text }) {
-  const response = await fetch(`${BASE_URL}/api/feedback`, {
+  const response = await fetch(`${API_BASE_URL}/api/feedback`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -102,7 +85,7 @@ export async function submitFeedback({ query_id, is_helpful, feedback_text }) {
  * @returns {Promise<Object>} Health status
  */
 export async function checkHealth() {
-  const response = await fetch(`${BASE_URL}/health`);
+  const response = await fetch(`${API_BASE_URL}/health`);
 
   if (!response.ok) {
     throw new Error('Health check failed');

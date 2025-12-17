@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(echo:*)",
+      "Bash(cat:*)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(.specify/scripts/bash/create-phr.sh:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(if [ -d \"specs\" ])",
+      "Bash(then ls -d specs/*-gemini-rag-chatbot)",
+      "Bash(fi)",
+      "Bash(git --version:*)",
+      "Bash(.specify/scripts/bash/create-adr.sh:*)",
+      "Bash(dir src /s)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000 | Select-Object -ExpandProperty OwningProcess\")"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
+}

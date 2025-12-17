@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  title: RAG Chatbot API
+  description: |
+    API for the Cohere + Qdrant RAG chatbot that answers questions based on the Physical AI & Humanoid Robotics textbook.
+
+    Base URL (development): http://localhost:8000
+    Base URL (production): TBD (Railway/Render/Cloud Run)
+
+    All endpoints return JSON responses.
+  version: 1.0.0
+  contact:
+    name: Physical AI Textbook Team
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://{deployment-url}
+    description: Production server (TBD)
+    variables:
+      deployment-url:
+        default: api.example.com
+
+paths:
+  /api/v1/query:
+    post:
+      summary: Query textbook content
+      description: |
+        Submit a question and receive a grounded answer based on textbook content with source citations.
+        Rate limited to 10 requests per minute per IP address.
+      operationId: queryTextbook
+      tags:
+        - Query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Successful query with answer and sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          description: Invalid request (empty query, too long, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable (Cohere or Qdrant down)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/ingest:
+    post:
+      summary: Trigger content ingestion
+      description: |
+        Crawl textbook sitemap, extract content, generate embeddings, and update Qdrant vector database.
+        Protected endpoint requiring API key authentication.
+      operationId: ingestContent
+      tags:
+        - Ingestion
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+      responses:
+        '200':
+          description: Ingestion job started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+        '401':
+          description: Unauthorized (missing or invalid API key)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Server error during ingestion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/health:
+    get:
+      summary: Health check
+      description: Check API and external service health (Cohere, Qdrant)
+      operationId: healthCheck
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for protected endpoints (ingestion)
+
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: User's question about textbook content
+          example: "What are the main components of a humanoid robot?"
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+          description: Maximum number of source chunks to retrieve
+          example: 5
+
+    QueryResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - metadata
+      properties:
+        answer:
+          type: string
+          description: Generated answer grounded in textbook content
+          example: "Based on the textbook, the main components of a humanoid robot include actuators for movement, sensors for perception, control systems for coordination, and power systems for energy supply."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceCitation'
+          description: Sources used to generate the answer
+        metadata:
+          type: object
+          properties:
+            session_id:
+              type: string
+              format: uuid
+              description: Unique query session identifier
+            response_time_ms:
+              type: integer
+              description: Total processing time in milliseconds
+            retrieval_score_threshold:
+              type: number
+              format: float
+              description: Minimum similarity score used for retrieval
+            chunks_retrieved:
+              type: integer
+              description: Number of chunks retrieved from Qdrant
+
+    SourceCitation:
+      type: object
+      required:
+        - page_url
+        - page_title
+        - chunk_text
+        - relevance_score
+      properties:
+        page_url:
+          type: string
+          format: uri
+          description: Link to source textbook page
+          example: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/components"
+        page_title:
+          type: string
+          description: Human-readable page title
+          example: "Robot Components"
+        chunk_text:
+          type: string
+          maxLength: 300
+          description: Excerpt from retrieved chunk
+          example: "The primary components include actuators, sensors, control systems..."
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Semantic similarity score (0-1)
+          example: 0.89
+
+    IngestRequest:
+      type: object
+      properties:
+        force_refresh:
+          type: boolean
+          default: false
+          description: If true, re-process all pages even if already ingested
+          example: false
+
+    IngestResponse:
+      type: object
+      required:
+        - job_id
+        - status
+        - pages_processed
+        - chunks_created
+      properties:
+        job_id:
+          type: string
+          format: uuid
+          description: Unique ingestion job identifier
+          example: "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+          description: Current job status
+          example: "completed"
+        pages_processed:
+          type: integer
+          minimum: 0
+          description: Number of pages successfully processed
+          example: 150
+        chunks_created:
+          type: integer
+          minimum: 0
+          description: Number of new chunks added to Qdrant
+          example: 1250
+        chunks_updated:
+          type: integer
+          minimum: 0
+          description: Number of existing chunks updated
+          example: 0
+        errors_encountered:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorRecord'
+          description: Errors during ingestion
+        start_time:
+          type: string
+          format: date-time
+          description: When ingestion started
+          example: "2025-12-16T08:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: When ingestion completed (null if still running)
+          example: "2025-12-16T08:07:30Z"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - services
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall system health
+          example: "healthy"
+        services:
+          type: object
+          properties:
+            cohere:
+              $ref: '#/components/schemas/ServiceStatus'
+            qdrant:
+              $ref: '#/components/schemas/ServiceStatus'
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+          example: "2025-12-16T15:45:30Z"
+
+    ServiceStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [operational, degraded, down]
+          description: Service-specific health status
+          example: "operational"
+        latency_ms:
+          type: integer
+          nullable: true
+          description: Last ping latency in milliseconds
+          example: 45
+        error:
+          type: string
+          nullable: true
+          description: Error message if service is down
+          example: null
+
+    ErrorRecord:
+      type: object
+      required:
+        - page_url
+        - error_type
+        - error_message
+        - timestamp
+      properties:
+        page_url:
+          type: string
+          format: uri
+          description: URL where error occurred
+          example: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/broken-page"
+        error_type:
+          type: string
+          description: Error category
+          example: "HTTPError"
+        error_message:
+          type: string
+          description: Detailed error description
+          example: "404 Not Found"
+        timestamp:
+          type: string
+          format: date-time
+          description: When error occurred
+          example: "2025-12-16T08:02:15Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type or code
+          example: "RateLimitExceeded"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Rate limit of 10 requests/minute exceeded. Please try again later."
+        details:
+          type: object
+          nullable: true
+          description: Additional error context
+        timestamp:
+          type: string
+          format: date-time
+          description: When error occurred
+          example: "2025-12-16T15:45:30Z"
