@@ -73,7 +73,12 @@ const config = {
 
   plugins: [
     // RAG Chatbot Plugin
-    './plugins/rag-chatbot',
+    [
+      './plugins/rag-chatbot',
+      {
+        backendUrl: process.env.REACT_APP_API_URL || 'https://physical-ai-humanoid-robotics-backend.onrender.com',
+      },
+    ],
   ],
 };
 
