@@ -4,22 +4,16 @@
  * Handles communication with the backend API.
  */
 
-// Use environment variable or fallback to relative URL
-// This allows configuration via Docusaurus customFields or environment variables
-const API_BASE_URL = typeof window !== 'undefined'
-  ? (process.env.REACT_APP_API_BASE_URL || window.ENV?.API_BASE_URL || '')
-  : process.env.REACT_APP_API_BASE_URL || '';
-
-// For Docusaurus, we can also check for custom fields in the config
-// This provides multiple fallbacks for different deployment scenarios
+// For Docusaurus, we use window.__APP_ENV__ set in docusaurus.config.ts
+// This provides a browser-compatible way to access configuration
 const getApiBaseUrl = () => {
-  // Check for custom field in docusaurus config first
+  // Browser environment: check for custom field in docusaurus config
   if (typeof window !== 'undefined' && window.__APP_ENV__?.BACKEND_URL) {
     return window.__APP_ENV__.BACKEND_URL;
   }
 
-  // Fallback to environment variable
-  return API_BASE_URL;
+  // Fallback to empty string (will use relative URLs)
+  return '';
 };
 
 const BASE_URL = getApiBaseUrl();
