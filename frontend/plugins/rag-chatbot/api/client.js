@@ -28,11 +28,21 @@ const BASE_URL = getApiBaseUrl();
  * @returns {Promise<Object>} Query response with answer and citations
  */
 export async function submitQuery({ query, session_id, selected_text }) {
+  // Get authentication token from localStorage if available
+  const authToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add authorization header if user is authenticated
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   const response = await fetch(`${BASE_URL}/api/v1/query`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: headers,
     body: JSON.stringify({
       query: query,  // Cohere API uses 'query' field
       max_results: 5,

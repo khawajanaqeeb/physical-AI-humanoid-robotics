@@ -210,10 +210,13 @@ Wait for consent; never auto-create ADRs. Group related decisions (stacks, authe
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
 
 ## Recent Changes
+- 004-better-auth-personalization: Added Better Auth-based authentication with PostgreSQL (Neon), user profiles (software/hardware experience, interests), personalized RAG responses via prompt injection
 - 003-cohere-qdrant-rag: Added Python 3.11+ + FastAPI 0.104+, cohere 5.0+, qdrant-client 1.7+, BeautifulSoup4 4.12+, requests 2.31+, tenacity 8.2+, slowapi 0.1.9+
 - 002-gemini-rag-chatbot: Added Python 3.11+
 - 001-rag-chatbot-mcp: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 
 ## Active Technologies
-- Python 3.11+ + FastAPI 0.104+, cohere 5.0+, qdrant-client 1.7+, BeautifulSoup4 4.12+, requests 2.31+, tenacity 8.2+, slowapi 0.1.9+ (003-cohere-qdrant-rag)
-- Qdrant Cloud (vector database), no relational database (003-cohere-qdrant-rag)
+- Authentication & Database: passlib[bcrypt] 1.7.4, python-jose[cryptography] 3.3.0, SQLAlchemy 2.0.23, alembic 1.13.1, psycopg2-binary 2.9.9, PostgreSQL on Neon (004-better-auth-personalization)
+- RAG Stack: Python 3.11+ + FastAPI 0.104+, cohere 5.0+, qdrant-client 1.7+, BeautifulSoup4 4.12+, requests 2.31+, tenacity 8.2+, slowapi 0.1.9+ (003-cohere-qdrant-rag)
+- Vector Database: Qdrant Cloud (003-cohere-qdrant-rag)
+- Relational Database: PostgreSQL (Neon) for auth, users, profiles, sessions (004-better-auth-personalization)

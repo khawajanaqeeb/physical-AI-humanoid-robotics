@@ -46,6 +46,7 @@ class RAGService:
         query_text: str,
         max_results: int = DEFAULT_TOP_K,
         score_threshold: float = DEFAULT_SCORE_THRESHOLD,
+        system_prompt: Optional[str] = None,
     ) -> QuerySession:
         """
         Process complete query workflow.
@@ -54,6 +55,7 @@ class RAGService:
             query_text: User's question
             max_results: Maximum number of chunks to retrieve
             score_threshold: Minimum similarity score (0.0-1.0)
+            system_prompt: Optional custom system prompt for personalization
 
         Returns:
             QuerySession with answer and citations
@@ -115,6 +117,7 @@ class RAGService:
             answer_data = self.generate_answer(
                 query=query_text,
                 chunks=retrieved_chunks,
+                system_prompt=system_prompt,
             )
             generation_time = int((time.time() - generation_start) * 1000)
 
@@ -180,6 +183,7 @@ class RAGService:
         self,
         query: str,
         chunks: List[DocumentChunk],
+        system_prompt: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate answer using Cohere with retrieved chunks.
@@ -187,6 +191,7 @@ class RAGService:
         Args:
             query: User's question
             chunks: Retrieved DocumentChunk objects
+            system_prompt: Optional custom system prompt for personalization
 
         Returns:
             dict with 'answer' and 'citations' fields
@@ -203,12 +208,13 @@ class RAGService:
 
         logger.debug(f"Generating answer with {len(documents)} documents")
 
-        # Call Cohere generate
+        # Call Cohere generate with optional system prompt
         result = cohere_service.generate(
             query=query,
             documents=documents,
             temperature=self.GENERATION_TEMPERATURE,
             max_tokens=self.MAX_GENERATION_TOKENS,
+            system_prompt=system_prompt,
         )
 
         return result

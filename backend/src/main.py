@@ -210,6 +210,14 @@ async def root() -> dict:
 from src.api.routes import query
 app.include_router(query.router, prefix="/api/v1", tags=["Query"])
 
+# Register authentication routes
+from src.auth import routes as auth_routes
+app.include_router(auth_routes.router, prefix="/api/v1")
+
+# Register user profile routes
+from src.users import routes as user_routes
+app.include_router(user_routes.router, prefix="/api/v1")
+
 # TODO: Register ingestion route in Phase 5
 # from src.api.routes import ingest
 # app.include_router(ingest.router, prefix="/api/v1", tags=["Ingestion"])

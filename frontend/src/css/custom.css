@@ -2,6 +2,9 @@
  * Custom CSS for RAG Chatbot Textbook
  */
 
+/* Import authentication component styles */
+@import url('../components/auth/auth.css');
+
 :root {
   --ifm-color-primary: #2e8555;
   --ifm-color-primary-dark: #29784c;

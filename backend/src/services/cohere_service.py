@@ -118,6 +118,7 @@ class CohereService:
         documents: List[Dict[str, str]],
         temperature: float = 0.3,
         max_tokens: Optional[int] = None,
+        system_prompt: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Generate an answer using retrieved documents with strict grounding.
@@ -127,6 +128,7 @@ class CohereService:
             documents: List of retrieved documents with "text" field
             temperature: Sampling temperature (0.0-1.0, lower = more deterministic)
             max_tokens: Maximum tokens in response (None = model default)
+            system_prompt: Optional custom system prompt for personalization
 
         Returns:
             dict: Contains "answer" (str) and "citations" (list) fields
@@ -146,20 +148,23 @@ class CohereService:
                 extra={
                     "query_length": len(query),
                     "document_count": len(documents),
+                    "has_system_prompt": system_prompt is not None,
                 },
             )
 
-            # System prompt enforcing strict grounding
-            preamble = (
-                "You are an AI assistant for a university-level textbook on Physical AI and Humanoid Robotics. "
-                "You must answer questions using ONLY the provided textbook context. "
-                "Do not use external knowledge. "
-                "Do not make assumptions. "
-                "If the answer is not present in the context, you must respond EXACTLY with: "
-                "'I could not find this information in the textbook.' "
-                "Your tone must be factual, concise, and academic. "
-                "Do not mention that you are an AI model, the retrieval process, or any internal systems."
-            )
+            # Use custom system prompt if provided, otherwise use default
+            preamble = system_prompt
+            if preamble is None:
+                preamble = (
+                    "You are an AI assistant for a university-level textbook on Physical AI and Humanoid Robotics. "
+                    "You must answer questions using ONLY the provided textbook context. "
+                    "Do not use external knowledge. "
+                    "Do not make assumptions. "
+                    "If the answer is not present in the context, you must respond EXACTLY with: "
+                    "'I could not find this information in the textbook.' "
+                    "Your tone must be factual, concise, and academic. "
+                    "Do not mention that you are an AI model, the retrieval process, or any internal systems."
+                )
 
             # Structured prompt with explicit instructions
             structured_message = (

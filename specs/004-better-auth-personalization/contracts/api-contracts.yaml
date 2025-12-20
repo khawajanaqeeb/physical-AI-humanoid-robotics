@@ -1,0 +1,756 @@
+openapi: 3.0.3
+info:
+  title: RAG Chatbot API with Authentication
+  description: |
+    Physical AI & Humanoid Robotics RAG chatbot API extended with user authentication and personalized responses.
+
+    **New Features**:
+    - User signup and signin with Better Auth principles
+    - User profile management (experience levels, interests)
+    - Personalized chatbot responses based on user background
+
+    **Existing Features** (preserved):
+    - RAG-based chatbot queries with source citations
+    - Cohere + Qdrant integration
+  version: 2.0.0
+  contact:
+    name: API Support
+    url: https://github.com/khawajanaqeeb/physical-AI-humanoid-robotics
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Development server
+  - url: https://your-production-url.com/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User signup, signin, signout, token refresh
+  - name: Profile
+    description: User profile management
+  - name: Query
+    description: Chatbot query endpoints (existing + personalized)
+
+paths:
+  # ============================================
+  # AUTHENTICATION ENDPOINTS (NEW)
+  # ============================================
+
+  /auth/signup:
+    post:
+      summary: Register new user account
+      description: |
+        Create a new user account with email/password and collect user profile information.
+        Automatically signs in the user and returns access/refresh tokens.
+      tags:
+        - Authentication
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            examples:
+              beginner_user:
+                summary: Beginner user signup
+                value:
+                  email: "student@example.com"
+                  password: "SecurePass123!"
+                  software_experience: "Beginner"
+                  hardware_experience: "None"
+                  interests: ["AI", "Robotics"]
+              advanced_user:
+                summary: Advanced user signup
+                value:
+                  email: "engineer@example.com"
+                  password: "AdvancedPass456!"
+                  software_experience: "Advanced"
+                  hardware_experience: "Advanced"
+                  interests: ["ML", "Control Systems", "Sensors"]
+      responses:
+        '201':
+          description: Account created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "550e8400-e29b-41d4-a716-446655440000"
+                token_type: "bearer"
+                expires_in: 900
+                user:
+                  id: "123e4567-e89b-12d3-a456-426614174000"
+                  email: "student@example.com"
+                  profile:
+                    software_experience: "Beginner"
+                    hardware_experience: "None"
+                    interests: ["AI", "Robotics"]
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                weak_password:
+                  summary: Password too weak
+                  value:
+                    error: "Validation Error"
+                    message: "Password does not meet strength requirements"
+                    details:
+                      - field: "password"
+                        issue: "Must contain uppercase, lowercase, number, and special character"
+                invalid_email:
+                  summary: Invalid email format
+                  value:
+                    error: "Validation Error"
+                    message: "Invalid email format"
+                    details:
+                      - field: "email"
+                        issue: "Must be a valid email address"
+                email_exists:
+                  summary: Email already registered
+                  value:
+                    error: "Validation Error"
+                    message: "Registration failed"
+                    details:
+                      - field: "email"
+                        issue: "Email already in use"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signin:
+    post:
+      summary: Sign in to existing account
+      description: |
+        Authenticate with email and password. Returns access and refresh tokens.
+      tags:
+        - Authentication
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+            example:
+              email: "student@example.com"
+              password: "SecurePass123!"
+      responses:
+        '200':
+          description: Signin successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Authentication Error"
+                message: "Invalid email or password"
+                details: []
+        '429':
+          description: Rate limit exceeded (5 requests per minute)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signout:
+    post:
+      summary: Sign out and invalidate session
+      description: |
+        Terminates the current session by deleting the refresh token from the database.
+        Client should also discard access token.
+      tags:
+        - Authentication
+      operationId: signout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Signout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Signout successful"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: |
+        Exchange a refresh token for a new access token and refresh token.
+        Old refresh token is invalidated.
+      tags:
+        - Authentication
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+                  format: uuid
+                  description: Valid refresh token from previous signin/signup
+                  example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Authentication Error"
+                message: "Invalid or expired refresh token"
+                details: []
+
+  # ============================================
+  # PROFILE ENDPOINTS (NEW)
+  # ============================================
+
+  /profile:
+    get:
+      summary: Get current user profile
+      description: |
+        Retrieve the authenticated user's profile information including experience levels and interests.
+      tags:
+        - Profile
+      operationId: getProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                email: "student@example.com"
+                profile:
+                  software_experience: "Beginner"
+                  hardware_experience: "None"
+                  interests: ["AI", "Robotics"]
+                  created_at: "2025-12-20T10:30:00Z"
+                  updated_at: "2025-12-20T10:30:00Z"
+                created_at: "2025-12-20T10:30:00Z"
+                last_login_at: "2025-12-20T15:45:00Z"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Update user profile
+      description: |
+        Update the authenticated user's experience levels and interests.
+        Profile changes take effect immediately on next chatbot query.
+      tags:
+        - Profile
+      operationId: updateProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+            example:
+              software_experience: "Intermediate"
+              hardware_experience: "Basic"
+              interests: ["AI", "ML", "Computer Vision"]
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Validation Error"
+                message: "Invalid experience level"
+                details:
+                  - field: "software_experience"
+                    issue: "Must be one of: Beginner, Intermediate, Advanced"
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ============================================
+  # CHATBOT QUERY ENDPOINT (EXISTING + ENHANCED)
+  # ============================================
+
+  /query:
+    post:
+      summary: Query textbook content (with optional personalization)
+      description: |
+        Submit a question and receive an AI-generated answer with source citations.
+
+        **Personalization**:
+        - If authenticated: Response tailored to user's experience level and interests
+        - If unauthenticated: Standard response (existing behavior preserved)
+
+        **Rate Limits**:
+        - 10 requests per minute per IP
+      tags:
+        - Query
+      operationId: queryTextbook
+      security:
+        - BearerAuth: []
+        - {}  # Allow unauthenticated access
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            example:
+              query: "What are the main components of a humanoid robot?"
+              max_results: 5
+      responses:
+        '200':
+          description: Query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              examples:
+                authenticated_beginner:
+                  summary: Response for beginner user (personalized)
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    query: "What are the main components of a humanoid robot?"
+                    answer: "A humanoid robot has several key parts that work together. Think of it like a human body: 1) **Sensors** (like eyes and ears) - These help the robot see and hear what's around it. 2) **Actuators** (like muscles) - These make the robot move its arms and legs..."
+                    sources:
+                      - page_url: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/fundamentals/components"
+                        page_title: "Robot Components Fundamentals"
+                        chunk_text: "The primary components of a humanoid robot include..."
+                        relevance_score: 0.92
+                    response_time_ms: 1850
+                    chunks_retrieved: 5
+                    personalization_applied: true
+                authenticated_advanced:
+                  summary: Response for advanced user (personalized)
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440001"
+                    query: "What are the main components of a humanoid robot?"
+                    answer: "Humanoid robots integrate multiple subsystems: 1) **Sensing subsystem** - Multi-modal perception via IMUs, force-torque sensors, LIDAR, RGB-D cameras. 2) **Actuation subsystem** - Typically DC servomotors or brushless motors with gear reduction, controlled via inverse kinematics (IK) and forward dynamics..."
+                    sources:
+                      - page_url: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/fundamentals/components"
+                        page_title: "Robot Components Fundamentals"
+                        chunk_text: "The primary components of a humanoid robot include..."
+                        relevance_score: 0.92
+                    response_time_ms: 1920
+                    chunks_retrieved: 5
+                    personalization_applied: true
+                unauthenticated:
+                  summary: Response for unauthenticated user (standard)
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440002"
+                    query: "What are the main components of a humanoid robot?"
+                    answer: "Based on the textbook, humanoid robots consist of several main components: sensors for perception, actuators for movement, a control system for coordination, power systems, and structural elements..."
+                    sources:
+                      - page_url: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/fundamentals/components"
+                        page_title: "Robot Components Fundamentals"
+                        chunk_text: "The primary components of a humanoid robot include..."
+                        relevance_score: 0.92
+                    response_time_ms: 1780
+                    chunks_retrieved: 5
+                    personalization_applied: false
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+# ============================================
+# COMPONENT SCHEMAS
+# ============================================
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT access token obtained from /auth/signin or /auth/signup.
+        Include in Authorization header: `Authorization: Bearer <token>`
+
+  schemas:
+    # ========== AUTH SCHEMAS ==========
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+        - software_experience
+        - hardware_experience
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          description: User's email address (must be unique)
+          example: "student@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: |
+            Password must meet strength requirements:
+            - Minimum 8 characters
+            - At least one uppercase letter
+            - At least one lowercase letter
+            - At least one digit
+            - At least one special character (@$!%*?&)
+          example: "SecurePass123!"
+        software_experience:
+          type: string
+          enum: [Beginner, Intermediate, Advanced]
+          description: User's software/programming experience level
+        hardware_experience:
+          type: string
+          enum: [None, Basic, Advanced]
+          description: User's hardware/robotics experience level
+        interests:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          maxItems: 10
+          description: Optional list of user's interests (max 10)
+          example: ["AI", "Robotics", "ML"]
+
+    SigninRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered email address
+          example: "student@example.com"
+        password:
+          type: string
+          format: password
+          description: Account password
+          example: "SecurePass123!"
+
+    AuthResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+        - user
+      properties:
+        access_token:
+          type: string
+          description: JWT access token (15 minute expiration)
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          format: uuid
+          description: Refresh token for obtaining new access tokens (7 day expiration)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always "bearer")
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Access token expiration time in seconds
+          example: 900
+        user:
+          $ref: '#/components/schemas/UserWithProfile'
+
+    # ========== PROFILE SCHEMAS ==========
+    UpdateProfileRequest:
+      type: object
+      properties:
+        software_experience:
+          type: string
+          enum: [Beginner, Intermediate, Advanced]
+          description: Updated software experience level (optional)
+        hardware_experience:
+          type: string
+          enum: [None, Basic, Advanced]
+          description: Updated hardware experience level (optional)
+        interests:
+          type: array
+          items:
+            type: string
+            maxLength: 50
+          maxItems: 10
+          description: Updated interests list (optional)
+          example: ["AI", "ML", "Computer Vision"]
+
+    UserProfileResponse:
+      type: object
+      required:
+        - id
+        - email
+        - profile
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "student@example.com"
+        profile:
+          $ref: '#/components/schemas/ProfileDetails'
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2025-12-20T10:30:00Z"
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last login timestamp
+          example: "2025-12-20T15:45:00Z"
+
+    UserWithProfile:
+      type: object
+      required:
+        - id
+        - email
+        - profile
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: User ID
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "student@example.com"
+        profile:
+          $ref: '#/components/schemas/ProfileDetails'
+
+    ProfileDetails:
+      type: object
+      required:
+        - software_experience
+        - hardware_experience
+        - created_at
+        - updated_at
+      properties:
+        software_experience:
+          type: string
+          enum: [Beginner, Intermediate, Advanced]
+          description: Software/programming experience level
+          example: "Beginner"
+        hardware_experience:
+          type: string
+          enum: [None, Basic, Advanced]
+          description: Hardware/robotics experience level
+          example: "None"
+        interests:
+          type: array
+          items:
+            type: string
+          description: List of user's interests
+          example: ["AI", "Robotics"]
+        created_at:
+          type: string
+          format: date-time
+          description: Profile creation timestamp
+          example: "2025-12-20T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Last profile update timestamp
+          example: "2025-12-20T10:30:00Z"
+
+    # ========== QUERY SCHEMAS (EXISTING + ENHANCED) ==========
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: User's question about the textbook content
+          example: "What are the main components of a humanoid robot?"
+        max_results:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 5
+          description: Maximum number of source chunks to retrieve
+          example: 5
+
+    QueryResponse:
+      type: object
+      required:
+        - session_id
+        - query
+        - answer
+        - sources
+        - response_time_ms
+        - chunks_retrieved
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Unique session identifier for this query
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        query:
+          type: string
+          description: Original user query
+          example: "What are the main components of a humanoid robot?"
+        answer:
+          type: string
+          description: AI-generated answer (personalized if authenticated)
+          example: "Based on the textbook, humanoid robots consist of..."
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceCitation'
+          description: Source citations from textbook
+        response_time_ms:
+          type: integer
+          description: Response generation time in milliseconds
+          example: 1850
+        chunks_retrieved:
+          type: integer
+          description: Number of chunks retrieved from vector database
+          example: 5
+        personalization_applied:
+          type: boolean
+          description: Whether personalization was applied (requires authentication)
+          example: true
+
+    SourceCitation:
+      type: object
+      required:
+        - page_url
+        - page_title
+        - chunk_text
+        - relevance_score
+      properties:
+        page_url:
+          type: string
+          format: uri
+          description: URL to source page in textbook
+          example: "https://physical-ai-humanoid-robotics-e3c7.vercel.app/docs/fundamentals/components"
+        page_title:
+          type: string
+          description: Title of source page
+          example: "Robot Components Fundamentals"
+        chunk_text:
+          type: string
+          description: Relevant text excerpt from source
+          example: "The primary components of a humanoid robot include..."
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Relevance score from vector database (0-1)
+          example: 0.92
+
+    # ========== ERROR SCHEMAS ==========
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type/category
+          example: "Validation Error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid email format"
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field that caused the error
+                example: "email"
+              issue:
+                type: string
+                description: Specific issue with the field
+                example: "Must be a valid email address"
+          description: Detailed error information (optional)

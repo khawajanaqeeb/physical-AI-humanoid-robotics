@@ -17,7 +17,13 @@
       "Bash(git --version:*)",
       "Bash(.specify/scripts/bash/create-adr.sh:*)",
       "Bash(dir src /s)",
-      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000 | Select-Object -ExpandProperty OwningProcess\")"
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000 | Select-Object -ExpandProperty OwningProcess\")",
+      "Bash(if [ -d \"history/prompts/004-better-auth-personalization\" ])",
+      "Bash(then ls history/prompts/004-better-auth-personalization/)",
+      "Bash(else echo \"0\")",
+      "Bash(alembic upgrade:*)",
+      "Bash(curl:*)",
+      "Bash(python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload)"
     ]
   },
   "enableAllProjectMcpServers": true,

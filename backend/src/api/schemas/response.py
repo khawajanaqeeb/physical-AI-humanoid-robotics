@@ -89,6 +89,11 @@ class QueryResponse(BaseModel):
         description="Number of textbook chunks used to generate answer",
     )
 
+    personalization_applied: bool = Field(
+        default=False,
+        description="Whether personalized system prompt was applied based on user profile",
+    )
+
     class Config:
         """Pydantic model configuration."""
 
@@ -107,5 +112,6 @@ class QueryResponse(BaseModel):
                 ],
                 "response_time_ms": 1850,
                 "chunks_retrieved": 5,
+                "personalization_applied": True,
             }
         }

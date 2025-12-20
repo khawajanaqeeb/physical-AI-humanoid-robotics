@@ -58,6 +58,31 @@ class Settings(BaseSettings):
         description="Optional API key to protect /api/v1/ingest endpoint",
     )
 
+    # Database Configuration (PostgreSQL on Neon)
+    database_url: str = Field(
+        ...,
+        description="PostgreSQL connection string from Neon (postgresql://user:pass@host/db)",
+    )
+
+    # Authentication & JWT Configuration
+    better_auth_secret: str = Field(
+        ...,
+        description="Secret key for JWT token signing (64-character hex string)",
+        min_length=32,
+    )
+    access_token_expire_minutes: int = Field(
+        default=15,
+        description="JWT access token expiration time in minutes",
+        ge=1,
+        le=60,
+    )
+    refresh_token_expire_days: int = Field(
+        default=7,
+        description="Refresh token expiration time in days",
+        ge=1,
+        le=30,
+    )
+
     # Server Configuration
     log_level: str = Field(
         default="INFO",
@@ -81,5 +106,22 @@ class Settings(BaseSettings):
         return v_upper
 
 
-# Global settings instance
-settings = Settings()
+# Global settings instance (lazy-loaded to avoid circular imports)
+_settings: Optional[Settings] = None
+
+
+def get_settings() -> Settings:
+    """
+    Get the global settings instance (singleton pattern).
+
+    Returns:
+        Settings instance
+    """
+    global _settings
+    if _settings is None:
+        _settings = Settings()
+    return _settings
+
+
+# For backward compatibility
+settings = get_settings()

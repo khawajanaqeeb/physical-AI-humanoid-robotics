@@ -4,7 +4,7 @@ Query endpoint for textbook Q&A.
 Handles user questions and returns generated answers with citations.
 """
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Request, status, Depends
 from fastapi.responses import JSONResponse
 
 from src.api.middleware.rate_limit import limiter
@@ -12,6 +12,10 @@ from src.api.schemas.request import QueryRequest
 from src.api.schemas.response import QueryResponse, SourceCitationResponse
 from src.core.logging_config import get_logger
 from src.services.rag_service import rag_service
+from src.auth.dependencies import get_current_user_optional
+from src.database.session import get_db
+from sqlalchemy.orm import Session
+from src.services.personalization_service import personalization_service
 
 logger = get_logger(__name__)
 
@@ -30,6 +34,8 @@ router = APIRouter()
 async def query_textbook(
     request: Request,
     query_request: QueryRequest,
+    current_user=Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
 ) -> QueryResponse:
     """
     Process user query and return answer with citations.
@@ -37,6 +43,8 @@ async def query_textbook(
     Args:
         request: FastAPI request object (for rate limiting)
         query_request: User query with optional parameters
+        current_user: Optional authenticated user (for personalization)
+        db: Database session
 
     Returns:
         QueryResponse with answer and source citations
@@ -60,7 +68,8 @@ async def query_textbook(
             "answer": "Based on the textbook...",
             "sources": [...],
             "response_time_ms": 1850,
-            "chunks_retrieved": 5
+            "chunks_retrieved": 5,
+            "personalization_applied": true
         }
         ```
     """
@@ -71,14 +80,39 @@ async def query_textbook(
             "query_length": len(query_request.query),
             "max_results": query_request.max_results,
             "client_ip": request.client.host if request.client else "unknown",
+            "user_authenticated": current_user is not None,
         },
     )
 
+    # Determine if personalization should be applied
+    system_prompt = None
+    personalization_applied = False
+
+    if current_user and current_user.profile:
+        try:
+            # Generate personalized system prompt
+            system_prompt = personalization_service.generate_system_prompt(current_user.profile)
+            personalization_applied = True
+            logger.info(
+                "Personalization applied for user",
+                extra={
+                    "user_id": str(current_user.id),
+                    "software_experience": current_user.profile.software_experience,
+                    "hardware_experience": current_user.profile.hardware_experience,
+                    "interests": current_user.profile.interests,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Error generating personalized system prompt: {e}", exc_info=True)
+            # Continue with default behavior - no personalization
+            personalization_applied = False
+
     try:
-        # Process query through RAG service
+        # Process query through RAG service with optional system prompt
         session = rag_service.query_textbook(
             query_text=query_request.query,
             max_results=query_request.max_results,
+            system_prompt=system_prompt,
         )
 
         # Convert SourceCitation to SourceCitationResponse
@@ -100,6 +134,7 @@ async def query_textbook(
             sources=source_responses,
             response_time_ms=session.response_time_ms,
             chunks_retrieved=len(session.retrieved_chunks),
+            personalization_applied=personalization_applied,
         )
 
         # Log successful response
@@ -110,6 +145,7 @@ async def query_textbook(
                 "response_time_ms": session.response_time_ms,
                 "chunks_retrieved": len(session.retrieved_chunks),
                 "citations": len(session.source_citations),
+                "personalization_applied": personalization_applied,
             },
         )
 

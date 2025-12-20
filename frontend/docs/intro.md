@@ -12,6 +12,14 @@ Click the floating chat button to ask questions about any topic covered in this 
 - Provide accurate answers based on the material
 - Include citations linking back to specific sections
 
+### Personalized Learning Experience
+
+Sign up or log in to access personalized responses tailored to your experience level and interests:
+
+- **Beginner**: Simplified explanations with analogies and step-by-step guidance
+- **Intermediate**: Balanced explanations with appropriate technical detail
+- **Advanced**: Detailed, technical explanations with implementation details
+
 ### Text Selection
 
 You can also select text on any page and ask the AI for clarification or more details about that specific content.
@@ -25,6 +33,21 @@ Try asking questions like:
 - "How does the AI assistant work?"
 
 The chat widget is available on every page of this textbook.
+
+## Authentication
+
+Create an account to unlock personalized learning experiences:
+
+- Click the "Sign In" button at the top right to access authentication features
+- Fill in your experience levels and interests during signup
+- Your profile will be used to customize responses to match your learning needs
+
+### Benefits of Authentication
+
+- **Adaptive Responses**: Answers are tailored to your experience level (beginner, intermediate, advanced)
+- **Interest-Based Context**: Questions related to your interests receive more detailed explanations
+- **Progress Tracking**: Your learning journey and interactions are remembered
+- **Personalized Recommendations**: Content suggestions based on your background and interests
 
 ## Forward Kinematics
 
