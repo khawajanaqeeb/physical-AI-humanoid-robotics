@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useUser } from '@site/src/components/auth/UserContext';
 import useSession from '../hooks/useSession';
 import useChatMessages from '../hooks/useChatMessages';
 import { submitQuery } from '../api/client';
@@ -13,6 +14,17 @@ import Citation from './Citation';
 import './ChatModal.css';
 
 export default function ChatModal({ onClose, initialText = '' }) {
+  // Safely access user context, providing fallback values if not available
+  let user, token, isAuthenticated;
+  try {
+    ({ user, token, isAuthenticated } = useUser());
+  } catch (error) {
+    // Context not available, provide fallback values
+    user = null;
+    token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    isAuthenticated = () => !!(token && localStorage.getItem('user_profile'));
+  }
+
   const sessionId = useSession();
   const { messages, addMessage, updateLastMessage } = useChatMessages();
   const [input, setInput] = useState(initialText);
@@ -52,12 +64,17 @@ export default function ChatModal({ onClose, initialText = '' }) {
     setIsLoading(true);
 
     try {
-      // Submit query to backend
+      // Submit query to backend with user context
       const response = await submitQuery({
         query: userMessage,
         session_id: sessionId,
         selected_text: initialText || undefined,
-      });
+        user_profile: isAuthenticated() ? {
+          software_experience: user?.software_experience,
+          hardware_experience: user?.hardware_experience,
+          interests: user?.interests
+        } : undefined
+      }, token);
 
       // Update assistant message with actual response
       updateLastMessage({

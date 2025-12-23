@@ -19,19 +19,28 @@ export default (function () {
         import('./components/ChatWidget').then((module) => {
           const ChatWidget = module.default;
 
-          // Check if container already exists
-          let chatContainer = document.getElementById('rag-chatbot-root');
+          // Import AuthProvider to wrap the ChatWidget
+          import('@site/src/components/auth/AuthContext').then((authModule) => {
+            const { AuthProvider } = authModule;
 
-          if (!chatContainer) {
-            // Create mount point for chat widget
-            chatContainer = document.createElement('div');
-            chatContainer.id = 'rag-chatbot-root';
-            document.body.appendChild(chatContainer);
+            // Check if container already exists
+            let chatContainer = document.getElementById('rag-chatbot-root');
 
-            // Render chat widget using React 18 API
-            const root = ReactDOM.createRoot(chatContainer);
-            root.render(React.createElement(ChatWidget));
-          }
+            if (!chatContainer) {
+              // Create mount point for chat widget
+              chatContainer = document.createElement('div');
+              chatContainer.id = 'rag-chatbot-root';
+              document.body.appendChild(chatContainer);
+
+              // Render chat widget wrapped with AuthProvider using React 18 API
+              const root = ReactDOM.createRoot(chatContainer);
+              root.render(
+                React.createElement(AuthProvider, null,
+                  React.createElement(ChatWidget)
+                )
+              );
+            }
+          });
         });
       });
     });
