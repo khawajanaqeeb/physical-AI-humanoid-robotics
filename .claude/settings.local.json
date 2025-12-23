@@ -32,7 +32,10 @@
       "Bash(npm install:*)",
       "Bash(git fetch:*)",
       "Bash(then ls -d specs/*-navbar-logout)",
-      "Bash(else echo \"No specs directory\")"
+      "Bash(else echo \"No specs directory\")",
+      "Bash(git push origin 008-fix-auth-fetch-error)",
+      "Bash(python:*)",
+      "Bash(git add .)"
     ]
   },
   "enableAllProjectMcpServers": true,
