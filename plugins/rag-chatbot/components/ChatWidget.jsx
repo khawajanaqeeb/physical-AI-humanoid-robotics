@@ -2,18 +2,44 @@
  * ChatWidget Component
  *
  * Floating chat button that opens the chat modal when clicked.
+ * Requires authentication - redirects to signin if user is not logged in.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@site/src/components/auth/AuthContext';
 import ChatModal from './ChatModal';
 import './ChatWidget.css';
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Check for chatbot open query param (from auth redirect)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('chatbot') === 'open' && isAuthenticated) {
+      setIsOpen(true);
+      // Clean up URL
+      params.delete('chatbot');
+      const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [isAuthenticated]);
 
   const toggleChat = () => {
+    if (!isAuthenticated) {
+      // Store current page for redirect after signin
+      sessionStorage.setItem('auth_redirect', window.location.pathname);
+      window.location.href = '/auth/signin';
+      return;
+    }
+
     setIsOpen(!isOpen);
   };
+
+  if (isLoading) {
+    return null; // Hide widget while loading auth state
+  }
 
   return (
     <>
@@ -22,7 +48,7 @@ export default function ChatWidget() {
         className="chat-widget-button"
         onClick={toggleChat}
         aria-label="Open chat assistant"
-        title="Ask a question"
+        title={isAuthenticated ? "Ask a question" : "Sign in to use chatbot"}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -41,7 +67,7 @@ export default function ChatWidget() {
       </button>
 
       {/* Chat Modal */}
-      {isOpen && <ChatModal onClose={() => setIsOpen(false)} />}
+      {isOpen && isAuthenticated && <ChatModal onClose={() => setIsOpen(false)} />}
     </>
   );
 }

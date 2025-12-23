@@ -12,7 +12,7 @@ from src.api.schemas.request import QueryRequest
 from src.api.schemas.response import QueryResponse, SourceCitationResponse
 from src.core.logging_config import get_logger
 from src.services.rag_service import rag_service
-from src.auth.dependencies import get_current_user_optional
+from src.auth.dependencies import get_current_user
 from src.database.session import get_db
 from sqlalchemy.orm import Session
 from src.services.personalization_service import personalization_service
@@ -34,7 +34,7 @@ router = APIRouter()
 async def query_textbook(
     request: Request,
     query_request: QueryRequest,
-    current_user=Depends(get_current_user_optional),
+    current_user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> QueryResponse:
     """

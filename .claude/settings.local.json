@@ -23,7 +23,16 @@
       "Bash(else echo \"0\")",
       "Bash(alembic upgrade:*)",
       "Bash(curl:*)",
-      "Bash(python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload)"
+      "Bash(python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(dir frontendsrccomponentsauth)",
+      "Bash(if [ -d \"specs/005-auth-frontend-ui/checklists\" ])",
+      "Bash(then ls specs/005-auth-frontend-ui/checklists/*.md)",
+      "Bash(else echo \"No checklists directory\")",
+      "Bash(git check-ignore:*)",
+      "Bash(npm install:*)",
+      "Bash(git fetch:*)",
+      "Bash(then ls -d specs/*-navbar-logout)",
+      "Bash(else echo \"No specs directory\")"
     ]
   },
   "enableAllProjectMcpServers": true,

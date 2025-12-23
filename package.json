@@ -12,6 +12,7 @@
     "@docusaurus/preset-classic": "^3.9.2",
     "@docusaurus/types": "^3.9.2",
     "acorn-jsx": "^5.3.2",
+    "better-auth": "^1.4.7",
     "boxen": "^6.2.1",
     "caniuse-lite": "^1.0.30001759",
     "cli-boxes": "^3.0.0",
@@ -83,5 +84,9 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "typescript": "^5.9.3"
+  }
 }

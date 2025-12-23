@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: Physical AI Robotics Textbook - Authentication API
+  description: |
+    Authentication API for user signup, signin, session management, and profile retrieval.
+
+    **Authentication Flow**:
+    1. User signs up → receives access_token + refresh_token
+    2. User signs in → receives access_token + refresh_token
+    3. Frontend stores access_token in memory, refresh_token in HTTP-only cookie
+    4. All protected endpoints require Authorization: Bearer {access_token}
+    5. When access_token expires (15 min), use refresh_token to get new access_token
+
+    **Base URL**:
+    - Development: http://localhost:8000
+    - Production: https://your-backend.railway.app
+  version: 1.0.0
+  contact:
+    name: API Support
+    url: https://github.com/khawajanaqeeb/physical-AI-humanoid-robotics
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://your-backend.railway.app
+    description: Production server (Railway)
+
+tags:
+  - name: Authentication
+    description: User signup, signin, signout, and token refresh
+  - name: User Profile
+    description: User profile retrieval and management
+
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Authentication
+      summary: User Signup
+      description: |
+        Create a new user account with profile information and receive authentication tokens.
+
+        **Requirements**:
+        - Email must be unique
+        - Password must be at least 8 characters with letter and number
+        - Software and hardware experience levels are required
+        - Interests are optional
+      operationId: signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            examples:
+              beginner:
+                summary: Beginner user
+                value:
+                  email: "student@example.com"
+                  password: "SecurePass123"
+                  software_experience: "BEGINNER"
+                  hardware_experience: "NONE"
+                  interests: ["Robotics", "AI"]
+              advanced:
+                summary: Advanced user
+                value:
+                  email: "expert@example.com"
+                  password: "SecurePass456"
+                  software_experience: "ADVANCED"
+                  hardware_experience: "ADVANCED"
+                  interests: ["Robotics", "Computer Vision", "Embedded Systems"]
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "student@example.com"
+                tokens:
+                  access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type: "bearer"
+                  expires_in: 900
+        '409':
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Email already registered"
+        '422':
+          description: Validation error (invalid input)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Invalid experience level"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "An error occurred during signup"
+
+  /auth/signin:
+    post:
+      tags:
+        - Authentication
+      summary: User Signin
+      description: |
+        Authenticate with email and password to receive tokens.
+
+        **Security**:
+        - Rate limited to 5 requests per minute per IP
+        - Failed attempts do not reveal whether email exists (returns generic "Invalid credentials")
+      operationId: signin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+            example:
+              email: "student@example.com"
+              password: "SecurePass123"
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "student@example.com"
+                tokens:
+                  access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type: "bearer"
+                  expires_in: 900
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Incorrect email or password"
+
+  /auth/signout:
+    post:
+      tags:
+        - Authentication
+      summary: User Signout
+      description: |
+        Invalidate refresh token to sign out.
+
+        **Note**: Access tokens remain valid until expiry (stateless JWT).
+        Signout removes refresh token from database, preventing new access tokens.
+      operationId: signout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignoutRequest'
+            example:
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Signed out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: "Successfully signed out"
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh Access Token
+      description: |
+        Use refresh token to get a new access token.
+
+        **Usage**:
+        - Call this endpoint when access token expires (401 responses)
+        - Returns new access_token and refresh_token
+        - Old refresh token is invalidated
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+            example:
+              refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                refresh_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                token_type: "bearer"
+                expires_in: 900
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Invalid or expired refresh token"
+
+  /auth/me:
+    get:
+      tags:
+        - User Profile
+      summary: Get Current User
+      description: |
+        Retrieve current authenticated user's profile information.
+
+        **Requires**: Valid access token in Authorization header
+      operationId: getCurrentUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+              example:
+                user_id: "550e8400-e29b-41d4-a716-446655440000"
+                email: "student@example.com"
+                is_active: true
+                created_at: "2025-12-21T10:30:00Z"
+                profile:
+                  software_experience: "INTERMEDIATE"
+                  hardware_experience: "BASIC"
+                  interests: ["Robotics", "AI", "Machine Learning"]
+        '401':
+          description: Unauthorized (invalid or expired token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                detail: "Could not validate credentials"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token from signin/signup
+
+  schemas:
+    SignupRequest:
+      type: object
+      required:
+        - email
+        - password
+        - software_experience
+        - hardware_experience
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address (must be unique)
+          example: "student@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: Password (min 8 chars, must contain letter and number)
+          example: "SecurePass123"
+        software_experience:
+          type: string
+          enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+          description: Software development experience level
+          example: "INTERMEDIATE"
+        hardware_experience:
+          type: string
+          enum: [NONE, BASIC, ADVANCED]
+          description: Hardware/robotics experience level
+          example: "BASIC"
+        interests:
+          type: array
+          items:
+            type: string
+          description: List of user interests (optional)
+          example: ["Robotics", "AI", "Computer Vision"]
+
+    SigninRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "student@example.com"
+        password:
+          type: string
+          format: password
+          description: User's password
+          example: "SecurePass123"
+
+    SignoutRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Refresh token to invalidate
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: Valid refresh token from signin/signup
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    AuthResponse:
+      type: object
+      required:
+        - user_id
+        - email
+        - tokens
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "student@example.com"
+        tokens:
+          $ref: '#/components/schemas/TokenResponse'
+
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - refresh_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          description: JWT access token for API requests
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          description: JWT refresh token for getting new access tokens
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        token_type:
+          type: string
+          enum: [bearer]
+          description: Token type (always 'bearer')
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Access token expiration time in seconds
+          example: 900
+
+    UserProfileResponse:
+      type: object
+      required:
+        - user_id
+        - email
+        - is_active
+        - created_at
+        - profile
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "student@example.com"
+        is_active:
+          type: boolean
+          description: Account active status
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+          example: "2025-12-21T10:30:00Z"
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      required:
+        - software_experience
+        - hardware_experience
+        - interests
+      properties:
+        software_experience:
+          type: string
+          enum: [BEGINNER, INTERMEDIATE, ADVANCED]
+          description: Software development experience level
+          example: "INTERMEDIATE"
+        hardware_experience:
+          type: string
+          enum: [NONE, BASIC, ADVANCED]
+          description: Hardware/robotics experience level
+          example: "BASIC"
+        interests:
+          type: array
+          items:
+            type: string
+          description: List of user interests
+          example: ["Robotics", "AI", "Machine Learning"]
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Success message
+          example: "Successfully signed out"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Error message
+          example: "Email already registered"
+
+  examples:
+    SignupBeginnerExample:
+      value:
+        email: "beginner@example.com"
+        password: "MyPassword123"
+        software_experience: "BEGINNER"
+        hardware_experience: "NONE"
+        interests: ["Robotics"]
+
+    SignupAdvancedExample:
+      value:
+        email: "expert@example.com"
+        password: "SecurePass456"
+        software_experience: "ADVANCED"
+        hardware_experience: "ADVANCED"
+        interests: ["Robotics", "Computer Vision", "Embedded Systems", "AI"]
