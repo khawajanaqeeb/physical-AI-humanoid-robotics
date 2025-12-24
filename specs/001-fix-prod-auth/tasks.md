@@ -53,7 +53,7 @@ description: "Task list for fixing production authentication server connection f
 - [ ] T009 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Production context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
 - [ ] T010 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Preview context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
 - [ ] T011 [US1] Commit code changes with message: "fix(auth): use NEXT_PUBLIC_API_URL for production compatibility"
-- [ ] T012 [US1] Push to branch 001-fix-prod-auth to trigger Vercel deployment
+- [X] T012 [US1] Push to branch 001-fix-prod-auth to trigger Vercel deployment
 - [ ] T013 [US1] Wait for Vercel deployment to complete (~2-3 minutes)
 - [ ] T014 [US1] Update Railway CORS_ORIGINS variable to include exact Vercel URL: `https://physical-ai-humanoid-robotics-e3c7.vercel.app,http://localhost:3000`
 - [ ] T015 [US1] Wait for Railway service restart (~30 seconds)
