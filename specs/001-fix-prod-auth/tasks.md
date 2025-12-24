@@ -47,8 +47,8 @@ description: "Task list for fixing production authentication server connection f
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Update docusaurus.config.ts:193 - Change `process.env.BACKEND_URL` to `process.env.NEXT_PUBLIC_API_URL`
-- [ ] T007 [US1] Verify fallback remains as `|| 'http://localhost:8000'` in docusaurus.config.ts:193
+- [X] T006 [US1] Update docusaurus.config.ts:193 - Change `process.env.BACKEND_URL` to `process.env.NEXT_PUBLIC_API_URL`
+- [X] T007 [US1] Verify fallback remains as `|| 'http://localhost:8000'` in docusaurus.config.ts:193
 - [ ] T008 [US1] Test localhost signup after code change to ensure no regression
 - [ ] T009 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Production context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
 - [ ] T010 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Preview context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
