@@ -50,11 +50,11 @@ description: "Task list for fixing production authentication server connection f
 - [X] T006 [US1] Update docusaurus.config.ts:193 - Change `process.env.BACKEND_URL` to `process.env.NEXT_PUBLIC_API_URL`
 - [X] T007 [US1] Verify fallback remains as `|| 'http://localhost:8000'` in docusaurus.config.ts:193
 - [ ] T008 [US1] Test localhost signup after code change to ensure no regression
-- [ ] T009 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Production context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
-- [ ] T010 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Preview context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
+- [X] T009 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Production context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
+- [X] T010 [US1] Set Vercel environment variable `NEXT_PUBLIC_API_URL` in Preview context (value: `https://physical-ai-humanoid-robotics-production-e742.up.railway.app`)
 - [ ] T011 [US1] Commit code changes with message: "fix(auth): use NEXT_PUBLIC_API_URL for production compatibility"
 - [X] T012 [US1] Push to branch 001-fix-prod-auth to trigger Vercel deployment
-- [ ] T013 [US1] Wait for Vercel deployment to complete (~2-3 minutes)
+- [X] T013 [US1] Wait for Vercel deployment to complete (~2-3 minutes)
 - [ ] T014 [US1] Update Railway CORS_ORIGINS variable to include exact Vercel URL: `https://physical-ai-humanoid-robotics-e3c7.vercel.app,http://localhost:3000`
 - [ ] T015 [US1] Wait for Railway service restart (~30 seconds)
 - [ ] T016 [US1] Verify CORS configuration with curl OPTIONS preflight request (see contracts/environment-vars.md for command)
