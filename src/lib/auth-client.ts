@@ -75,14 +75,14 @@ const makeAuthRequest = async (endpoint: string, options: RequestInit) => {
 
 // Get backend URL - use environment variables with fallback to localhost
 const getBackendUrl = (): string => {
-  // Check for build-time environment variable first
-  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  // Check for runtime configuration from plugin (injected via injectHtmlTags)
+  if (typeof window !== 'undefined' && (window as any).CHATBOT_API_URL) {
+    return (window as any).CHATBOT_API_URL;
   }
 
-  // Check for runtime configuration
-  if (typeof window !== 'undefined' && (window as any).__ENV__?.API_URL) {
-    return (window as any).__ENV__.API_URL;
+  // Check for build-time environment variable (Vercel/build context)
+  if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
   }
 
   // Fallback to localhost for development
