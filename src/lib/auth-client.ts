@@ -90,6 +90,7 @@ const getBackendUrl = (): string => {
 };
 
 const BACKEND_URL = getBackendUrl();
+console.log('[DEBUG] Auth backend URL:', BACKEND_URL);
 
 // Types
 export interface User {
