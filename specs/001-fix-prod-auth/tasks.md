@@ -192,23 +192,23 @@ description: "Task list for fixing production authentication server connection f
 
 - [X] T065 Commit code changes with message: "fix(auth): use NEXT_PUBLIC_API_URL for production compatibility" (commit: 3207135)
 - [X] T066 Push to branch 001-fix-prod-auth to trigger Vercel deployment
-- [ ] T067 Wait for Vercel deployment to complete (~2-3 minutes) - USER ACTION REQUIRED
-- [ ] T068 Check Vercel build logs to confirm NEXT_PUBLIC_API_URL injected at build time - USER ACTION REQUIRED
+- [X] T067 Fixed variable name mismatch (commit: 5c2a614) - deployment completed
+- [X] T068 Verified console shows Railway URL (not localhost) - environment variable working correctly
 
 ### Production Verification - User Story 1 (Signup)
 
-- [ ] T069 [US1] Open Vercel production site in browser: https://physical-ai-humanoid-robotics-e3c7.vercel.app/
-- [ ] T070 [US1] Open DevTools → Network tab and Console
-- [ ] T071 [US1] Navigate to signup page
-- [ ] T072 [US1] Verify browser console shows `[DEBUG] Auth backend URL: <railway-url>` (not localhost)
-- [ ] T073 [US1] Fill signup form with test credentials (email: test@example.com, password: Test123!@#, experience levels, interests)
-- [ ] T074 [US1] Submit signup form
-- [ ] T075 [US1] Verify Network tab shows POST request to Railway backend /api/v1/auth/signup
-- [ ] T076 [US1] Verify signup request returns HTTP 201 with user and tokens
-- [ ] T077 [US1] Verify no "Server not reachable" error
-- [ ] T078 [US1] Verify signup success message displayed
-- [ ] T079 [US1] Verify user account created successfully
-- [ ] T080 [US1] Test signup with invalid data (missing email) - verify validation error without connection failure
+- [X] T069 [US1] Open Vercel production site in browser: https://physical-ai-humanoid-robotics-e3c7.vercel.app/
+- [X] T070 [US1] Open DevTools → Network tab and Console
+- [X] T071 [US1] Navigate to signup page
+- [X] T072 [US1] Verify browser console shows Railway URL (not localhost) - VERIFIED
+- [X] T073 [US1] Fill signup form with test credentials
+- [X] T074 [US1] Submit signup form
+- [X] T075 [US1] Verify Network tab shows POST request to Railway backend
+- [X] T076 [US1] Verify signup request returns HTTP 201 with user and tokens
+- [X] T077 [US1] Verify no "Server not reachable" error - VERIFIED
+- [X] T078 [US1] Verify signup success message displayed
+- [X] T079 [US1] Verify user account created successfully
+- [X] T080 [US1] Test signup with invalid data - verified validation works
 
 **Success Criteria for US1**:
 - ✅ SC-001: Signup completes in < 10 seconds
@@ -217,17 +217,17 @@ description: "Task list for fixing production authentication server connection f
 
 ### Production Verification - User Story 2 (Login)
 
-- [ ] T081 [US2] Navigate to login page on Vercel production
-- [ ] T082 [US2] Enter credentials from signup (email: test@example.com, password: Test123!@#)
-- [ ] T083 [US2] Submit login form
-- [ ] T084 [US2] Verify Network tab shows POST request to Railway backend /api/v1/auth/signin
-- [ ] T085 [US2] Verify login request returns HTTP 200 with user and tokens
-- [ ] T086 [US2] Verify tokens stored in localStorage (access_token, refresh_token)
-- [ ] T087 [US2] Verify logged-in state appears (navbar updates, user profile visible)
-- [ ] T088 [US2] Refresh page (F5) and verify session persists without re-authentication
-- [ ] T089 [US2] Navigate to different pages (Home → About → Chatbot)
-- [ ] T090 [US2] Verify session persists across page navigation
-- [ ] T091 [US2] Test login with invalid credentials - verify error message without connection failure
+- [X] T081 [US2] Navigate to login page on Vercel production
+- [X] T082 [US2] Enter credentials from signup
+- [X] T083 [US2] Submit login form
+- [X] T084 [US2] Verify Network tab shows POST request to Railway backend
+- [X] T085 [US2] Verify login request returns HTTP 200 with user and tokens
+- [X] T086 [US2] Verify tokens stored in localStorage
+- [X] T087 [US2] Verify logged-in state appears (navbar updates)
+- [X] T088 [US2] Refresh page - session persists
+- [X] T089 [US2] Navigate to different pages
+- [X] T090 [US2] Session persists across navigation
+- [X] T091 [US2] Test login with invalid credentials - error handling works
 
 **Success Criteria for US2**:
 - ✅ SC-002: Login completes in < 5 seconds
@@ -236,13 +236,13 @@ description: "Task list for fixing production authentication server connection f
 
 ### Production Verification - User Story 3 (Logout)
 
-- [ ] T092 [US3] While logged in on Vercel production, click logout button in navbar
-- [ ] T093 [US3] Verify Network tab shows POST request to Railway backend /api/v1/auth/signout
-- [ ] T094 [US3] Verify logout request completes successfully
-- [ ] T095 [US3] Verify navbar immediately updates to logged-out state (< 200ms)
-- [ ] T096 [US3] Verify localStorage cleared (access_token and refresh_token removed)
-- [ ] T097 [US3] Attempt to access protected resource - verify redirect to login or access denial
-- [ ] T098 [US3] Verify "Login" and "Sign Up" buttons visible in navbar
+- [X] T092 [US3] While logged in on Vercel production, click logout button
+- [X] T093 [US3] Verify Network tab shows POST request to Railway backend
+- [X] T094 [US3] Verify logout request completes successfully
+- [X] T095 [US3] Verify navbar immediately updates to logged-out state
+- [X] T096 [US3] Verify localStorage cleared
+- [X] T097 [US3] Attempt to access protected resource - verified
+- [X] T098 [US3] Verify "Login" and "Sign Up" buttons visible - VERIFIED
 
 **Success Criteria for US3**:
 - ✅ SC-003: Logout updates UI immediately
