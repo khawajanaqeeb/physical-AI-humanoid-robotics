@@ -1,0 +1,42 @@
+{
+  "path": "module-1-ros2/chapter-1-ros2-basics",
+  "title": "ROS 2 بنیادی باتیں",
+  "content": {
+    "learning_objectives": {
+      "heading": "سیکھنے کے مقاصد",
+      "items": [
+        "ROS 2 تصورات اور فن تعمیر کو سمجھنا",
+        "نوڈز، ٹاپکس، سروسز اور ایکشنز کو لاگو کرنا",
+        "ہیومنائڈز کے لیے URDF بنیادی باتیں",
+        "ROS کنٹرول کے لیے Python ایجنٹس بنانا (rclpy)"
+      ]
+    },
+    "prerequisites": {
+      "heading": "ضروری تقاضے",
+      "items": [
+        "Python پروگرامنگ کا علم",
+        "روبوٹکس تصورات کی بنیادی سمجھ",
+        "Ubuntu/Linux سے واقفیت"
+      ]
+    },
+    "required_tools": {
+      "heading": "ضروری ٹولز",
+      "items": [
+        "ROS 2 Humble/Iron",
+        "Python 3.x",
+        "Ubuntu LTS",
+        "Text editor یا IDE"
+      ]
+    },
+    "chapter_structure": {
+      "heading": "باب کی ساخت",
+      "items": [
+        "ROS 2 تصورات کا تعارف",
+        "نوڈز، ٹاپکس، سروسز اور ایکشنز",
+        "تکنیکی وضاحت",
+        "مثال کوڈ (تصدیق شدہ)",
+        "تصاویر/ڈایاگرام"
+      ]
+    }
+  }
+}

@@ -32,7 +32,8 @@ const config: Config = {
   // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
-    locales: ['en'],
+    locales: ['en', 'ur'], // Added Urdu (ur) for RTL support
+    // Note: Urdu uses RTL (right-to-left) text direction
   },
 
   presets: [
@@ -66,6 +67,14 @@ const config: Config = {
         },
       } satisfies Preset.Options,
     ],
+  ],
+
+  // Urdu font configuration for translation feature
+  stylesheets: [
+    {
+      href: 'https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap',
+      type: 'text/css',
+    },
   ],
 
   themeConfig: {

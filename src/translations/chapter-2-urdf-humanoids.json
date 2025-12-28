@@ -1,0 +1,19 @@
+{
+  "path": "module-1-ros2/chapter-2-urdf-humanoids",
+  "title": "ہیومنائڈز کے لیے URDF بنیادی باتیں",
+  "content": {
+    "introduction": {
+      "heading": "تعارف",
+      "text": "URDF (Unified Robot Description Format) روبوٹ کی ساخت کو بیان کرنے کے لیے XML پر مبنی فارمیٹ ہے۔"
+    },
+    "learning_objectives": {
+      "heading": "سیکھنے کے مقاصد",
+      "items": [
+        "URDF فارمیٹ اور ڈھانچے کو سمجھنا",
+        "ہیومنائڈ روبوٹ ماڈلز بنانا",
+        "جوڑوں اور لنکس کی تشکیل",
+        "ROS 2 کے ساتھ URDF کا استعمال"
+      ]
+    }
+  }
+}

@@ -1,0 +1,91 @@
+/**
+ * TranslateButton Styles
+ *
+ * Styling for the language toggle button with clear visibility
+ * and smooth interaction feedback.
+ */
+
+.translateButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ifm-color-primary);
+  background-color: var(--ifm-color-primary-lightest);
+  border: 2px solid var(--ifm-color-primary);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: inherit;
+}
+
+.translateButton:hover {
+  background-color: var(--ifm-color-primary-lighter);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.translateButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.translateButton:focus {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.label {
+  font-size: 0.9375rem;
+  line-height: 1;
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .translateButton {
+  color: var(--ifm-color-primary-lightest);
+  background-color: var(--ifm-color-primary-darkest);
+  border-color: var(--ifm-color-primary-light);
+}
+
+[data-theme='dark'] .translateButton:hover {
+  background-color: var(--ifm-color-primary-darker);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .translateButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .icon {
+    font-size: 1.125rem;
+  }
+
+  .label {
+    font-size: 0.875rem;
+  }
+}
+
+/* Animation for language switch */
+.translateButton.switching {
+  animation: pulse 0.3s ease-in-out;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+}

@@ -1,0 +1,107 @@
+/**
+ * Custom CSS for Physical AI & Humanoid Robotics Textbook
+ * Includes Urdu translation support with Nastaleeq typography and RTL layout
+ */
+
+/* ============================================================================
+   Urdu Typography Configuration (T005)
+   ============================================================================ */
+
+/* Urdu font family using Noto Nastaliq Urdu from Google Fonts */
+.urdu-content {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif;
+  font-size: 1.1rem; /* Slightly larger for better Nastaleeq readability */
+  line-height: 1.8; /* Increased line height for Urdu script */
+  font-weight: 400;
+}
+
+/* Headings in Urdu */
+.urdu-content h1,
+.urdu-content h2,
+.urdu-content h3,
+.urdu-content h4,
+.urdu-content h5,
+.urdu-content h6 {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* Code blocks should remain in monospace even in Urdu content */
+.urdu-content code,
+.urdu-content pre {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  direction: ltr; /* Code is always LTR */
+}
+
+/* ============================================================================
+   RTL Layout Styles (T006)
+   ============================================================================ */
+
+/* Apply RTL direction to Urdu content */
+.urdu-content {
+  direction: rtl;
+  text-align: right;
+}
+
+/* RTL list styles */
+.urdu-content ul,
+.urdu-content ol {
+  padding-right: 2rem;
+  padding-left: 0;
+}
+
+/* RTL blockquotes */
+.urdu-content blockquote {
+  border-right: 4px solid var(--ifm-color-primary);
+  border-left: none;
+  padding-right: 1rem;
+  padding-left: 0;
+  margin-right: 0;
+  margin-left: 0;
+}
+
+/* RTL tables */
+.urdu-content table {
+  direction: rtl;
+}
+
+/* RTL navigation elements within content */
+.urdu-content .pagination-nav__link {
+  text-align: right;
+}
+
+/* Ensure images and media remain centered */
+.urdu-content img,
+.urdu-content video,
+.urdu-content iframe {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================================================
+   Smooth Transitions for Language Toggle
+   ============================================================================ */
+
+/* Smooth transition when switching between languages */
+.chapter-content {
+  transition: opacity 0.3s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.chapter-content.transitioning {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   Default Docusaurus Overrides (if needed)
+   ============================================================================ */
+
+:root {
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
